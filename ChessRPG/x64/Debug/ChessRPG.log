@@ -1,0 +1,22 @@
+﻿  ChessRPG.cpp
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(205,1): warning C4312: 'type cast': conversion from 'int' to 'HMENU' of greater size
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(210,16): warning C4312: 'type cast': conversion from 'int' to 'HMENU' of greater size
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(222,1): warning C4312: 'type cast': conversion from 'int' to 'HMENU' of greater size
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(242,1): warning C4312: 'type cast': conversion from 'int' to 'HMENU' of greater size
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(700,15): warning C4244: 'initializing': conversion from 'LRESULT' to 'int', possible loss of data
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(701,15): warning C4244: 'initializing': conversion from 'LRESULT' to 'int', possible loss of data
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(702,15): warning C4244: 'initializing': conversion from 'LRESULT' to 'int', possible loss of data
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(703,15): warning C4244: 'initializing': conversion from 'LRESULT' to 'int', possible loss of data
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(712,15): warning C4244: 'initializing': conversion from 'LRESULT' to 'int', possible loss of data
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(714,17): warning C4244: 'initializing': conversion from 'LRESULT' to 'int', possible loss of data
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(1631,126): warning C4244: '=': conversion from 'LRESULT' to 'int', possible loss of data
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(1641,126): warning C4244: '=': conversion from 'LRESULT' to 'int', possible loss of data
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(1642,126): warning C4244: '=': conversion from 'LRESULT' to 'int', possible loss of data
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(1838,32): warning C4244: 'initializing': conversion from 'LRESULT' to 'int', possible loss of data
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(1851,32): warning C4244: 'initializing': conversion from 'LRESULT' to 'int', possible loss of data
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(1852,27): warning C4244: 'initializing': conversion from 'LRESULT' to 'int', possible loss of data
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(1864,29): warning C4244: 'initializing': conversion from 'LRESULT' to 'int', possible loss of data
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(1873,29): warning C4244: 'initializing': conversion from 'LRESULT' to 'int', possible loss of data
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(1882,29): warning C4244: 'initializing': conversion from 'LRESULT' to 'int', possible loss of data
+C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(1891,29): warning C4244: 'initializing': conversion from 'LRESULT' to 'int', possible loss of data
+  ChessRPG.vcxproj -> C:\Github Repos\ChessRPG\ChessRPG\x64\Debug\ChessRPG.exe
