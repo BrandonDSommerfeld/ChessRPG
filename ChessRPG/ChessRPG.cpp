@@ -1262,7 +1262,8 @@ void useSpecial(int row, int col)
     }
     case Piece::Type::Knight:
     {
-        if (currentState.selectedRow - row == 2)
+        //Not working going down and right
+        if (currentState.selectedRow > row)
         {
             currentState.board.getPiece(row + 1, col).dealDamage(3);
             if (currentState.board.getPiece(row + 1, col).isDead())
@@ -1271,8 +1272,9 @@ void useSpecial(int row, int col)
                 deselectSquare(row + 1, col);
             }
         }
-        else if (row - currentState.selectedRow == 2)
+        else if (row > currentState.selectedRow)
         {
+            //Hmmmmm
             currentState.board.getPiece(row - 1, col).dealDamage(3);
             if (currentState.board.getPiece(row - 1, col).isDead())
             {
@@ -1280,7 +1282,7 @@ void useSpecial(int row, int col)
                 deselectSquare(row - 1, col);
             }
         }
-        else if (currentState.selectedCol - col == 2)
+        else if (currentState.selectedCol > col)
         {
             currentState.board.getPiece(row, col + 1).dealDamage(3);
             if (currentState.board.getPiece(row, col + 1).isDead())
@@ -1291,6 +1293,7 @@ void useSpecial(int row, int col)
         }
         else
         {
+            //Hmmmmmmm
             currentState.board.getPiece(row, col - 1).dealDamage(3);
             if (currentState.board.getPiece(row, col - 1).isDead())
             {
