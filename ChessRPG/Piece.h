@@ -61,12 +61,13 @@ private:
 	bool m_isNoPiece{};
 	bool m_hasMoved{};
 	bool m_usingSpecial{};
+	int m_statusTurns{};
 public:
 
 	static const int pieceHealth[6];
 	//Need to really update constructors
 	Piece();
-	Piece(Type type, Move move1, Move move2, Move move3, Move move4, int health, bool isWhite);
+	Piece(Type type, Move move1, Move move2, Move move3, Move move4, bool isWhite);
 
 	virtual bool neighbor(int crow, int ccol, int nrow, int ncol);
 
@@ -75,10 +76,7 @@ public:
 	int getMaxHealth();
 	int getCurrentHealth();
 
-	Move getMove1();
-	Move getMove2();
-	Move getMove3();
-	Move getMove4();
+	Move getMove(int move);
 
 	Status getStatus();
 
@@ -100,6 +98,16 @@ public:
 
 	void useSpecial();
 
+	void setStatus(Status status);
+
+	int getStatusTurns();
+
+	void decrementStatusTurns();
+
+	void setStatusTurns(int turns);
+
+	std::string getName();
+
 
 	friend bool operator== (const Piece& piece1, const Piece& piece2);
 
@@ -111,5 +119,7 @@ std::string getDescription(Piece::Move move);
 std::string printMove(Piece::Move move);
 
 std::string printStatus(Piece::Status status);
+
+std::string printType(Piece::Type type);
 
 int getRandomNumber(int min, int max);

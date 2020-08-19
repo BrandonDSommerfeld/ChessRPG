@@ -11,18 +11,18 @@ Grid::Grid()
 	:
 	board{}
 {
-	board[0][0] = Piece{ Piece::Type::Rook, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Rook)],  false };
-	board[0][1] = Piece{ Piece::Type::Knight, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Knight)],  false };
-	board[0][2] = Piece{ Piece::Type::Bishop, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Bishop)],  false };
-	board[0][3] = Piece{ Piece::Type::King, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::King)],  false };
-	board[0][4] = Piece{ Piece::Type::Queen, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Queen)],  false };
-	board[0][5] = Piece{ Piece::Type::Bishop, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Bishop)],  false };
-	board[0][6] = Piece{ Piece::Type::Knight, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Knight)],  false };
-	board[0][7] = Piece{ Piece::Type::Rook, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Rook)],  false };
+	board[0][0] = Piece{ Piece::Type::Rook, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
+	board[0][1] = Piece{ Piece::Type::Knight, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
+	board[0][2] = Piece{ Piece::Type::Bishop, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
+	board[0][3] = Piece{ Piece::Type::King, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
+	board[0][4] = Piece{ Piece::Type::Queen, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
+	board[0][5] = Piece{ Piece::Type::Bishop, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
+	board[0][6] = Piece{ Piece::Type::Knight, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
+	board[0][7] = Piece{ Piece::Type::Rook, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
 
 	for (int c{ 0 }; c < 8; ++c)
 	{
-		board[1][c] = Piece{ Piece::Type::Pawn, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Pawn)],  false };
+		board[1][c] = Piece{ Piece::Type::Pawn, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
 	}
 	for (int r{ 2 }; r < 6; ++r)
 	{
@@ -33,17 +33,17 @@ Grid::Grid()
 	}
 	for (int c{ 0 }; c < 8; ++c)
 	{
-		board[6][c] = Piece{ Piece::Type::Pawn, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Pawn)],  true };
+		board[6][c] = Piece{ Piece::Type::Pawn, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
 	}
 
-	board[7][0] = Piece{ Piece::Type::Rook, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Rook)],  true };
-	board[7][1] = Piece{ Piece::Type::Knight, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Knight)],  true };
-	board[7][2] = Piece{ Piece::Type::Bishop, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Bishop)],  true };
-	board[7][3] = Piece{ Piece::Type::King, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::King)],  true };
-	board[7][4] = Piece{ Piece::Type::Queen, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Queen)],  true };
-	board[7][5] = Piece{ Piece::Type::Bishop, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Bishop)],  true };
-	board[7][6] = Piece{ Piece::Type::Knight, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Knight)],  true };
-	board[7][7] = Piece{ Piece::Type::Rook, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), Piece::pieceHealth[static_cast<int>(Piece::Type::Rook)],  true };
+	board[7][0] = Piece{ Piece::Type::Rook, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
+	board[7][1] = Piece{ Piece::Type::Knight, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
+	board[7][2] = Piece{ Piece::Type::Bishop, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
+	board[7][3] = Piece{ Piece::Type::King, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
+	board[7][4] = Piece{ Piece::Type::Queen, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
+	board[7][5] = Piece{ Piece::Type::Bishop, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
+	board[7][6] = Piece{ Piece::Type::Knight, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
+	board[7][7] = Piece{ Piece::Type::Rook, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
 
 	//Need proper constructors
 }
@@ -63,6 +63,10 @@ Grid::Grid(Loadout loadout1, Loadout loadout2)
 
 Piece& Grid::getPiece(int row, int col)
 {
+	if (row < 0)
+	{
+		return noPiece;
+	}
 	return board[row][col];
 }
 
@@ -155,6 +159,26 @@ std::array<std::array<bool, 8>, 8> Grid::reachable(int row, int col)
 			{
 				ans[row + 1][col + 1] = true;
 			}
+		}
+
+		for (int i{ -1 }; i < 2; ++i)
+		{
+			if (row + i >= 0 && row + i < 8 && col - 1 >= 0 && (board[row + i][col - 1].getType() == Piece::Type::King && board[row + i][col - 1].isWhite() != board[row][col].isWhite()))
+			{
+				ans[row + i][col - 1] = true;
+			}
+			if (row + i >= 0 && row + i < 8 && col + 1 < 8 && (board[row + i][col + 1].getType() == Piece::Type::King && board[row + i][col + 1].isWhite() != board[row][col].isWhite()))
+			{
+				ans[row + i][col + 1] = true;
+			}
+		}
+		if (row + 1 < 8 && (board[row + 1][col].getType() == Piece::Type::King && board[row + 1][col].isWhite() != board[row][col].isWhite()))
+		{
+			ans[row + 1][col] = true;
+		}
+		if (row - 1 >= 0 && (board[row - 1][col].getType() == Piece::Type::King && board[row - 1][col].isWhite() != board[row][col].isWhite()))
+		{
+			ans[row - 1][col] = true;
 		}
 		break;
 

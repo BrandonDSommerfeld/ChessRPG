@@ -14,24 +14,26 @@ Piece::Piece()
 	m_isWhite{ false },
 	m_status{Piece::Status::MAX_STATUSES},
 	m_hasMoved{ true },
-	m_usingSpecial{ false }
+	m_usingSpecial{ false },
+	m_statusTurns{ 0 }
 {
 	m_moves[0] = Move::MAX_MOVES;
 	m_moves[1] = Move::MAX_MOVES;
 	m_moves[2] = Move::MAX_MOVES;
 	m_moves[3] = Move::MAX_MOVES;
 }
-Piece::Piece(Type type, Move move1, Move move2, Move move3, Move move4, int health, bool isWhite)
+Piece::Piece(Type type, Move move1, Move move2, Move move3, Move move4, bool isWhite)
 	:
 	m_moves{},
-	m_maxHealth{ health },
-	m_currentHealth{ health },
+	m_maxHealth{ Piece::pieceHealth[static_cast<int>(type)] },
+	m_currentHealth{ Piece::pieceHealth[static_cast<int>(type)] },
 	m_isNoPiece{ false },
 	m_isWhite{ isWhite },
 	m_status{ Piece::Status::MAX_STATUSES },
 	m_type{ type },
 	m_hasMoved{ false },
-	m_usingSpecial{ false }
+	m_usingSpecial{ false },
+	m_statusTurns{ 0 }
 {
 	m_moves[0] = move1;
 	m_moves[1] = move2;
@@ -44,10 +46,13 @@ bool Piece::neighbor(int crow, int ccol, int nrow, int ncol)
 	return false;
 }
 
-Piece::AttackOutcome Piece::useMove(Piece& opponent, Piece::Move move)
+
+
+void Piece::setStatus(Piece::Status status)
 {
-	return Piece::AttackOutcome::MAX_OUTCOMES;
+	m_status = status;
 }
+
 int Piece::getMaxHealth()
 {
 	return m_maxHealth;
@@ -58,25 +63,11 @@ int Piece::getCurrentHealth()
 	return m_currentHealth;
 }
 
-Piece::Move Piece::getMove1()
+Piece::Move Piece::getMove(int move)
 {
-	return m_moves[0];
+	return m_moves[move-1];
 }
 
-Piece::Move Piece::getMove2()
-{
-	return m_moves[1];
-}
-
-Piece::Move Piece::getMove3()
-{
-	return m_moves[2];
-}
-
-Piece::Move Piece::getMove4()
-{
-	return m_moves[3];
-}
 
 Piece::Status Piece::getStatus()
 {
@@ -133,9 +124,24 @@ void Piece::dealDamage(int amount)
 	}
 }
 
+int Piece::getStatusTurns()
+{
+	return m_statusTurns;
+}
 
+void Piece::decrementStatusTurns()
+{
+	--m_statusTurns;
+	if (m_statusTurns == 0)
+	{
+		m_status = Piece::Status::MAX_STATUSES;
+	}
+}
 
-
+void Piece::setStatusTurns(int turns)
+{
+	m_statusTurns = turns;
+}
 
 bool operator== (const Piece& piece1, const Piece& piece2)
 {
@@ -147,11 +153,32 @@ bool operator != (const Piece& piece1, const Piece& piece2)
 	return (piece1.m_isNoPiece != piece2.m_isNoPiece);
 }
 
+Piece::AttackOutcome Piece::useMove(Piece& opponent, Piece::Move move)
+{
+	switch (move)
+	{
+	case Piece::Move::Bash:
+	{
+		opponent.dealDamage(1);
+		break;
+	}
+	case Piece::Move::Slice:
+	{
+		opponent.dealDamage(1);
+		opponent.setStatus(Piece::Status::Bleeding);
+		opponent.setStatusTurns(2);
+		break;
+	}
+	}
+
+	return Piece::AttackOutcome::MAX_OUTCOMES;
+}
+
 std::string getDescription(Piece::Move move)
 {
 	switch (move)
 	{
-	case Piece::Move::Bash :
+	case Piece::Move::Bash:
 		return "Deal 2 damage";
 	case Piece::Move::Slice:
 		return "Deal 1 damage and apply bleeding";
@@ -160,7 +187,7 @@ std::string getDescription(Piece::Move move)
 	case Piece::Move::Move:
 		return "";
 
-	default :
+	default:
 		return "";
 	}
 	return "";
@@ -192,6 +219,42 @@ std::string printStatus(Piece::Status status)
 		return "Bleeding";
 	case Piece::Status::Poisoned :
 		return "Poisoned";
+	default :
+		return "";
+	}
+}
+
+std::string Piece::getName()
+{
+	std::string name{};
+	if (isWhite())
+	{
+		name = "White ";
+	}
+	else
+	{
+		name = "Black ";
+	}
+	name += printType(getType());
+	return name;
+}
+
+std::string printType(Piece::Type type)
+{
+	switch (type)
+	{
+	case Piece::Type::Pawn :
+		return "Pawn";
+	case Piece::Type::Rook :
+		return "Rook";
+	case Piece::Type::Knight:
+		return "Knight";
+	case Piece::Type::Bishop:
+		return "Bishop";
+	case Piece::Type::Queen:
+		return "Queen";
+	case Piece::Type::King:
+		return "King";
 	default :
 		return "";
 	}

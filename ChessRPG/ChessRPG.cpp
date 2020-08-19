@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <string>
 #include <array>
+#include <thread>
+#include <chrono>
 
 #define NAMEBOX1LEFT 0.3
 #define NAMEBOX1TOP 0.8
@@ -28,12 +30,23 @@
 #define BOARDRIGHT 0.7
 #define BOARDTOP 0.3
 #define BOARDBOTTOM 0.7
+#define DESCRIPTIONBOXLEFT 0.4
+#define DESCRIPTIONBOXTOP 0.8
+#define DESCRIPTIONBOXWIDTH 0.2
+#define DESCRIPTIONBOXHEIGHT 0.1
 
 #define SQUARECODE 256
 
+#define selectedPiece board.getPiece(currentState.selectedRow, currentState.selectedCol)
+
+#define attackerRow selectedRow
+#define attackerCol selectedCol
+
+#define attacker board.getPiece(currentState.selectedRow, currentState.selectedCol)
+#define defender board.getPiece(currentState.defenderRow, currentState.defenderCol)
 
 
-//Don't want to create 64 codes for board, will be using squarecode as the code for button
+
 enum class WindowCode
 {
     singlePlayer,
@@ -64,6 +77,8 @@ enum class WindowCode
     move3,
     move4,
     flee,
+    usingMove,
+    finishingBattle,
     MAX_BUTTONS
 };
 
@@ -75,18 +90,22 @@ enum class CurrentActivity
     createLoadout,
     about, 
     selectLoadout,
+    victoryScreen,
     MAX_ACTIVITIES,
 };
 
-
-
+enum class Winner
+{
+    player1,
+    player2,
+    draw,
+    MAX_OUTCOMES
+};
 
 struct WindowState
 {
    Grid board{};
    CurrentActivity currentActivity{ CurrentActivity::mainMenu };
-   Piece selectedPiece{};
-   Piece::Move selectedMove{Piece::Move::MAX_MOVES}; //Probably unecessary
    LONG leftEdge{};
    LONG rightEdge{};
    LONG topEdge{};
@@ -96,17 +115,24 @@ struct WindowState
    HWND squares[8][8];
    bool blueSquares[8][8];
    std::string loadoutNames[11];
+   std::wstring player1name{};
+   std::wstring player2name{};
    Loadout loadouts[11];
    bool singlePlayer{ false };
    bool player1IsWhite{ false };
    bool loadoutChanged{ false };
-   int player1Loadout{}; //Probably unnecessary
-   int player2Loadout{}; //Probably unecessary
-   int selectedRow{};
-   int selectedCol{};
+   int player1Loadout{};
+   int player2Loadout{};
+   int selectedRow{-1};
+   int selectedCol{-1};
+   int defenderRow{ -1 };
+   int defenderCol{ -1 };
    bool isWhiteTurn{ true };
    bool waitingForInput{ false };
-   bool turnUsed{ false };
+   bool waiting{ false };
+   bool attackerTurn{ true };
+   bool handledStatus{ false };
+
    HBITMAP whitePawnWhiteBackground{};
    HBITMAP whitePawnBlackBackground{};
    HBITMAP whitePawnBlueBackground{};
@@ -158,11 +184,17 @@ struct WindowState
 static WindowState currentState{};
 static WNDCLASS wc = { };
 
+//Forward declarations
+void useMove(int move);
+void destroyGameBoard();
+void createBattle();
+void useTurn();
+void computerBattle();
 void updateBoard(int row, int col);
 void promotePawn(int row, int col);
 void useSpecial(int row, int col);
+void takeComputerTurn();
 std::array<std::array<bool, 8>, 8> specialSquares();
-
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -202,14 +234,113 @@ HWND createButton(HWND hwnd, const wchar_t* text, int code, double leftAsPercent
         , static_cast<int>((currentState.bottomEdge - currentState.topEdge) * topAsPercentOfScreen)
         , static_cast<int>((currentState.rightEdge - currentState.leftEdge) * widthAsPercentOfScreen)
         , static_cast<int>((currentState.bottomEdge - currentState.topEdge) * heightAsPercentOfScreen)
-        , hwnd, (HMENU) code, NULL, NULL);
+        , hwnd, reinterpret_cast<HMENU>(code), NULL, NULL);
 }
 
-HWND createSquare(HWND hwnd,int code, int left, int top, int width, int height, HBITMAP image)
+HWND createIcon(HWND hwnd, double leftAsPercentOfScreen, double topAsPercentOfScreen, double widthAsPercentOfScreen, double heightAsPercentOfScreen)
 {
-    HWND temp{ CreateWindow(L"button", L"", WS_VISIBLE | WS_CHILD | BS_BITMAP,left, top, width, height, hwnd, (HMENU)code, NULL, NULL) };
-    SendMessage(temp, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)image);
-    return temp;
+    return CreateWindow(L"static", L"", WS_VISIBLE | WS_CHILD | SS_BITMAP,
+        static_cast<int>((currentState.rightEdge - currentState.leftEdge) * leftAsPercentOfScreen)
+        , static_cast<int>((currentState.bottomEdge - currentState.topEdge) * topAsPercentOfScreen)
+        , static_cast<int>((currentState.rightEdge - currentState.leftEdge) * widthAsPercentOfScreen)
+        , static_cast<int>((currentState.bottomEdge - currentState.topEdge) * heightAsPercentOfScreen)
+        , hwnd, NULL, NULL, NULL);
+}
+
+void fillIcon(HWND hwnd, Piece& piece, int size)
+{
+    switch (piece.getType())
+    {
+    case Piece::Type::Pawn :
+    {
+        if (piece.isWhite())
+        {
+            HBITMAP image{ (HBITMAP)LoadImage(NULL, L"Images\\whitepawnblackbackground.bmp", IMAGE_BITMAP, size, size, LR_LOADFROMFILE) };
+            SendMessage(hwnd, (UINT)STM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)image);
+        }
+        else
+        {
+            HBITMAP image{ (HBITMAP)LoadImage(NULL, L"Images\\blackpawnwhitebackground.bmp", IMAGE_BITMAP, size, size, LR_LOADFROMFILE) };
+            SendMessage(hwnd, (UINT)STM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)image);
+        }
+        break;
+    }
+    case Piece::Type::Knight:
+    {
+        if (piece.isWhite())
+        {
+            HBITMAP image{ (HBITMAP)LoadImage(NULL, L"Images\\whiteknightblackbackground.bmp", IMAGE_BITMAP, size, size, LR_LOADFROMFILE) };
+            SendMessage(hwnd, (UINT)STM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)image);
+        }
+        else
+        {
+            HBITMAP image{ (HBITMAP)LoadImage(NULL, L"Images\\blackknightwhitebackground.bmp", IMAGE_BITMAP, size, size, LR_LOADFROMFILE) };
+            SendMessage(hwnd, (UINT)STM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)image);
+        }
+        break;
+    }
+    case Piece::Type::Bishop:
+    {
+        if (piece.isWhite())
+        {
+            HBITMAP image{ (HBITMAP)LoadImage(NULL, L"Images\\whitebishopblackbackground.bmp", IMAGE_BITMAP, size, size, LR_LOADFROMFILE) };
+            SendMessage(hwnd, (UINT)STM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)image);
+        }
+        else
+        {
+            HBITMAP image{ (HBITMAP)LoadImage(NULL, L"Images\\blackbishopwhitebackground.bmp", IMAGE_BITMAP, size, size, LR_LOADFROMFILE) };
+            SendMessage(hwnd, (UINT)STM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)image);
+        }
+        break;
+    }
+    case Piece::Type::Rook:
+    {
+        if (piece.isWhite())
+        {
+            HBITMAP image{ (HBITMAP)LoadImage(NULL, L"Images\\whiterookblackbackground.bmp", IMAGE_BITMAP, size, size, LR_LOADFROMFILE) };
+            SendMessage(hwnd, (UINT)STM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)image);
+        }
+        else
+        {
+            HBITMAP image{ (HBITMAP)LoadImage(NULL, L"Images\\blackrookwhitebackground.bmp", IMAGE_BITMAP, size, size, LR_LOADFROMFILE) };
+            SendMessage(hwnd, (UINT)STM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)image);
+        }
+        break;
+    }
+    case Piece::Type::Queen:
+    {
+        if (piece.isWhite())
+        {
+            HBITMAP image{ (HBITMAP)LoadImage(NULL, L"Images\\whitequeenblackbackground.bmp", IMAGE_BITMAP, size, size, LR_LOADFROMFILE) };
+            SendMessage(hwnd, (UINT)STM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)image);
+        }
+        else
+        {
+            HBITMAP image{ (HBITMAP)LoadImage(NULL, L"Images\\blackqueenwhitebackground.bmp", IMAGE_BITMAP, size, size, LR_LOADFROMFILE) };
+            SendMessage(hwnd, (UINT)STM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)image);
+        }
+        break;
+    }
+    case Piece::Type::King:
+    {
+        if (piece.isWhite())
+        {
+            HBITMAP image{ (HBITMAP)LoadImage(NULL, L"Images\\whitekingblackbackground.bmp", IMAGE_BITMAP, size, size, LR_LOADFROMFILE) };
+            SendMessage(hwnd, (UINT)STM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)image);
+        }
+        else
+        {
+            HBITMAP image{ (HBITMAP)LoadImage(NULL, L"Images\\blackkingwhitebackground.bmp", IMAGE_BITMAP, size, size, LR_LOADFROMFILE) };
+            SendMessage(hwnd, (UINT)STM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)image);
+        }
+        break;
+    }
+    }
+}
+
+HWND createSquare(HWND hwnd,int code, int left, int top, int width, int height)
+{
+    return CreateWindow(L"button", L"", WS_VISIBLE | WS_CHILD | BS_BITMAP,left, top, width, height, hwnd, reinterpret_cast<HMENU>(code), NULL, NULL);
 }
 
 HWND createTextBox(HWND hwnd, const wchar_t* text, int code, double leftAsPercentOfScreen, double topAsPercentOfScreen, double widthAsPercentOfScreen, double heightAsPercentOfScreen)
@@ -219,7 +350,7 @@ HWND createTextBox(HWND hwnd, const wchar_t* text, int code, double leftAsPercen
         , static_cast<int>((currentState.bottomEdge - currentState.topEdge) * topAsPercentOfScreen)
         , static_cast<int>((currentState.rightEdge - currentState.leftEdge) * widthAsPercentOfScreen)
         , static_cast<int>((currentState.bottomEdge - currentState.topEdge) * heightAsPercentOfScreen)
-        , hwnd, (HMENU)code, NULL, NULL);
+        , hwnd, reinterpret_cast<HMENU>(code), NULL, NULL);
 }
 
 HWND createLabel(HWND hwnd, const wchar_t* text, double leftAsPercentOfScreen, double topAsPercentOfScreen, double widthAsPercentOfScreen, double heightAsPercentOfScreen)
@@ -239,12 +370,24 @@ HWND createDropdown(HWND hwnd, int code, double leftAsPercentOfScreen, double to
         , static_cast<int>((currentState.bottomEdge - currentState.topEdge) * topAsPercentOfScreen)
         , static_cast<int>((currentState.rightEdge - currentState.leftEdge) * widthAsPercentOfScreen)
         , static_cast<int>((currentState.bottomEdge - currentState.topEdge) * heightAsPercentOfScreen)
-        , hwnd, (HMENU) code, NULL, NULL);
+        , hwnd, reinterpret_cast<HMENU>(code), NULL, NULL);
 }
 
 std::wstring StringToWString(const std::string& s)
 {
     return std::wstring(s.begin(), s.end());
+}
+
+void waitBattle(int millis)
+{
+    SetTimer(currentState.mainWindow, static_cast<int>(WindowCode::usingMove), millis, (TIMERPROC)NULL);
+    currentState.waiting = true;
+}
+
+void waitDone(int millis)
+{
+    SetTimer(currentState.mainWindow, static_cast<int>(WindowCode::finishingBattle), millis, (TIMERPROC)NULL);
+    currentState.waiting = true;
 }
 
 void fillLoadoutDropdown(HWND hwnd)
@@ -597,6 +740,37 @@ void destroyMainMenu()
     DestroyWindow(currentState.windows[4]);
 }
 
+void createVictoryScreen(Winner winner)
+{
+    std::wstring message{};
+    switch (winner)
+    {
+    case Winner::player1 :
+    {
+        message = currentState.player1name + L" wins!";
+    }
+    case Winner::player2 :
+    {
+        message = currentState.player2name + L" wins!";
+    }
+    case Winner::draw :
+    {
+        message = L"Draw";
+    }
+    }
+
+    currentState.windows[0] = createLabel(currentState.mainWindow, message.c_str(), 0.2, 0.3, 0.6, 0.2);
+    currentState.windows[1] = createButton(currentState.mainWindow, L"OK", static_cast<int>(WindowCode::exit),
+        0.4, 0.6, 0.2, 0.1);
+    //Make a static label to congratulate, and an ok button which exits to main menu
+}
+
+void destroyVictoryScreen()
+{
+    DestroyWindow(currentState.windows[0]);
+    DestroyWindow(currentState.windows[1]);
+}
+
 void createSelectScreen(HWND hwnd)
 {
     if (currentState.singlePlayer)
@@ -626,13 +800,7 @@ void destroySelectScreen()
     DestroyWindow(currentState.windows[3]);
     DestroyWindow(currentState.windows[4]);
 }
-
-
-
-
-
 //Buttons are a mess, need to move stuff around, but it works
-
 //Like, really move stuff around
 void createLoadoutScreen(HWND hwnd)
 {
@@ -697,10 +865,10 @@ void destroyLoadoutScreen()
 void retrieveNewLoadoutSelection()
 {
     DestroyWindow(currentState.windows[15]);
-    int move1 = SendMessage(currentState.windows[4], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
-    int move2 = SendMessage(currentState.windows[5], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
-    int move3 = SendMessage(currentState.windows[6], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
-    int move4 = SendMessage(currentState.windows[7], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+    int move1 = static_cast<int>(SendMessage(currentState.windows[4], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
+    int move2 = static_cast<int>(SendMessage(currentState.windows[5], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
+    int move3 = static_cast<int>(SendMessage(currentState.windows[6], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
+    int move4 = static_cast<int>(SendMessage(currentState.windows[7], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
 
     if (move1 == move2 || move1 == move3 || move1 == move4 || move2 == move3 || move2 == move4 || move3 == move4)
     {
@@ -709,9 +877,9 @@ void retrieveNewLoadoutSelection()
     }
 
     DestroyWindow(currentState.windows[15]);
-    int piece = SendMessage(currentState.windows[3], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+    int piece = static_cast<int>(SendMessage(currentState.windows[3], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
 
-    int loadout = SendMessage(currentState.windows[2], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0) + 1;
+    int loadout = static_cast<int>(SendMessage(currentState.windows[2], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0) + 1);
 
     currentState.loadouts[loadout].moves[piece * 4] = static_cast<Piece::Move>(move1);
     currentState.loadouts[loadout].moves[piece * 4 + 1] = static_cast<Piece::Move>(move2);
@@ -816,34 +984,39 @@ void createLoadoutFile()
 
 void createGameBoard(HWND hwnd)
 {
-    if (getRandomNumber(0, 1))
-    {
-        currentState.player1IsWhite = true;
-    }
-    else
-    {
-        currentState.player1IsWhite = false;
-    }
     if (currentState.player1IsWhite)
     {
-        
-        currentState.windows[5] = createLabel(hwnd, L"", NAMEBOX1LEFT, NAMEBOX1TOP, NAMEBOX1WIDTH, NAMEBOX1HEIGHT);
-        currentState.windows[6] = createLabel(hwnd, L"", NAMEBOX2LEFT, NAMEBOX2TOP, NAMEBOX2WIDTH, NAMEBOX2HEIGHT);
+        currentState.windows[5] = createLabel(hwnd, currentState.player1name.c_str(), NAMEBOX1LEFT, NAMEBOX1TOP, NAMEBOX1WIDTH, NAMEBOX1HEIGHT);
+        currentState.windows[6] = createLabel(hwnd, currentState.player2name.c_str(), NAMEBOX2LEFT, NAMEBOX2TOP, NAMEBOX2WIDTH, NAMEBOX2HEIGHT);
     }
     else
     {
-        currentState.windows[5] = createLabel(hwnd, L"", NAMEBOX2LEFT, NAMEBOX2TOP, NAMEBOX2WIDTH, NAMEBOX2HEIGHT);
-        currentState.windows[6] = createLabel(hwnd, L"", NAMEBOX1LEFT, NAMEBOX1TOP, NAMEBOX1WIDTH, NAMEBOX1HEIGHT);
+        currentState.windows[5] = createLabel(hwnd, currentState.player1name.c_str(), NAMEBOX2LEFT, NAMEBOX2TOP, NAMEBOX2WIDTH, NAMEBOX2HEIGHT);
+        currentState.windows[6] = createLabel(hwnd, currentState.player2name.c_str(), NAMEBOX1LEFT, NAMEBOX1TOP, NAMEBOX1WIDTH, NAMEBOX1HEIGHT);
     }
-
     currentState.windows[7] = createButton(hwnd, L"Exit", static_cast<int>(WindowCode::exit), GAMEEXITBUTTONLEFT, GAMEEXITBUTTONTOP, GAMEEXITBUTTONWIDTH, GAMEEXITBUTTONHEIGHT);
+
+    int size{ static_cast<int>((currentState.bottomEdge - currentState.topEdge) * (BOARDBOTTOM - BOARDTOP)) / 8 };
+    loadImages(size);
+    for (int row{ 0 }; row < 8; ++row)
+    {
+        for (int col{ 0 }; col < 8; ++col)
+        {
+            currentState.blueSquares[row][col] = false;
+            currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>(static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT)) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size);
+        }
+    }
 
     for (int i{ 0 }; i < 8; ++i)
     {
         for (int j{ 0 }; j < 8; ++j)
         {
-            currentState.blueSquares[i][j] = false;
+            deselectSquare(i, j);
         }
+    }
+    if (currentState.singlePlayer && !currentState.player1IsWhite)
+    {
+        takeComputerTurn();
     }
 }
 
@@ -863,7 +1036,7 @@ void computerUpdateBoard(int row, int col)
     }
     //Castle update
 
-    if (currentState.selectedPiece.getType() == Piece::Type::King)
+    if (currentState.board.getPiece(row, col).getType() == Piece::Type::King)
     {
         if (currentState.selectedCol - col == 2)
         {
@@ -876,17 +1049,19 @@ void computerUpdateBoard(int row, int col)
     }
 
 
-    if (currentState.selectedPiece.getType() == Piece::Type::Pawn)
+    if (currentState.board.getPiece(row, col).getType() == Piece::Type::Pawn)
     {
-        if ((currentState.selectedPiece.isWhite() && row == 0) || (!currentState.selectedPiece.isWhite() && row == 7))
+        if ((currentState.board.getPiece(row, col).isWhite() && row == 0) || (!currentState.board.getPiece(row, col).isWhite() && row == 7))
         {
+            currentState.selectedRow = row;
+            currentState.selectedCol = col;
             int selection{ getRandomNumber(0, 3) };
             switch (selection)
             {
             case 0:
             {
                 Piece rook = Piece(Piece::Type::Rook, currentState.loadouts[0].moves[4], currentState.loadouts[0].moves[5], 
-                    currentState.loadouts[0].moves[6], currentState.loadouts[0].moves[7], Piece::pieceHealth[static_cast<int>(Piece::Type::Rook)], currentState.selectedPiece.isWhite());
+                    currentState.loadouts[0].moves[6], currentState.loadouts[0].moves[7], currentState.selectedPiece.isWhite());
                 currentState.board.addPiece(rook, row, col);
                 deselectSquare(row, col);
                 return;
@@ -894,7 +1069,7 @@ void computerUpdateBoard(int row, int col)
             case 1:
             {
                 Piece knight = Piece(Piece::Type::Knight, currentState.loadouts[0].moves[8], currentState.loadouts[0].moves[9],
-                    currentState.loadouts[0].moves[10], currentState.loadouts[0].moves[11], Piece::pieceHealth[static_cast<int>(Piece::Type::Knight)], currentState.selectedPiece.isWhite());
+                    currentState.loadouts[0].moves[10], currentState.loadouts[0].moves[11], currentState.selectedPiece.isWhite());
                 currentState.board.addPiece(knight, row, col);
                 deselectSquare(row, col);
                 return;
@@ -902,7 +1077,7 @@ void computerUpdateBoard(int row, int col)
             case 2:
             {
                 Piece bishop = Piece(Piece::Type::Bishop, currentState.loadouts[0].moves[12], currentState.loadouts[0].moves[13],
-                    currentState.loadouts[0].moves[14], currentState.loadouts[0].moves[15], Piece::pieceHealth[static_cast<int>(Piece::Type::Bishop)], currentState.selectedPiece.isWhite());
+                    currentState.loadouts[0].moves[14], currentState.loadouts[0].moves[15], currentState.selectedPiece.isWhite());
                 currentState.board.addPiece(bishop, row, col);
                 deselectSquare(row, col);
                 return;
@@ -910,7 +1085,7 @@ void computerUpdateBoard(int row, int col)
             case 3:
             {
                 Piece queen = Piece(Piece::Type::Queen, currentState.loadouts[0].moves[16], currentState.loadouts[0].moves[17],
-                    currentState.loadouts[0].moves[18], currentState.loadouts[0].moves[19], Piece::pieceHealth[static_cast<int>(Piece::Type::Queen)], currentState.selectedPiece.isWhite());
+                    currentState.loadouts[0].moves[18], currentState.loadouts[0].moves[19], currentState.selectedPiece.isWhite());
                 currentState.board.addPiece(queen, row, col);
                 deselectSquare(row, col);
                 return;
@@ -933,7 +1108,6 @@ void takeComputerTurn()
         {
             currentState.selectedRow = r;
             currentState.selectedCol = c;
-            currentState.selectedPiece = currentState.board.getPiece(r, c);
             std::array<std::array<bool, 8>, 8> reachable{};
             if (getRandomNumber(0, 4) == 0)
             {
@@ -1003,10 +1177,26 @@ void takeComputerTurn()
                         }
                         else
                         {
-                            currentState.board.movePiece(r, c, ro, co);
-                            computerUpdateBoard(ro, co);
+                            if (currentState.board.getPiece(ro, co) != Grid::noPiece)
+                            {
+                                currentState.defenderCol = co;
+                                currentState.defenderRow = ro;
+                                currentState.currentActivity = CurrentActivity::battle;
+                                currentState.waitingForInput = true;
+                                destroyGameBoard();
+                                createBattle();
+                                //At end of battle, need to:
+                                //Move piece
+                                //update board
+                                //waiting is false
+                                //Unselect piece
+                            }
+                            else
+                            {
+                                currentState.board.movePiece(r, c, ro, co);
+                                computerUpdateBoard(ro, co);
+                            }
                         }
-                        
                         return;
                     }
                 }
@@ -1014,104 +1204,6 @@ void takeComputerTurn()
         }
     }
 }
-
-void colorBoard(HWND hwnd)
-{
-    //Make a non-default constructor later
-    currentState.board = Grid{};
-    int row{ 0 };
-    int col{ 0 };
-    int size{ static_cast<int>((currentState.bottomEdge - currentState.topEdge) * (BOARDBOTTOM - BOARDTOP)) / 8 };
-    loadImages(size);
-
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>(static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT)) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.blackRookBlackBackground);
-    ++col;
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>(static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP)) + row * size, size, size, currentState.blackKnightWhiteBackground);
-    ++col;
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.blackBishopBlackBackground);
-    ++col;
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.blackKingWhiteBackground);
-    ++col;
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.blackQueenBlackBackground);
-    ++col;
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.blackBishopWhiteBackground);
-    ++col;
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.blackKnightBlackBackground);
-    ++col;
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.blackRookWhiteBackground);
-    ++row;
-    col = 0;
-
-    while (col < 8)
-    {
-        if (col % 2 == 0)
-        {
-            currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.blackPawnWhiteBackground);
-        }
-        else
-        {
-            currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.blackPawnBlackBackground);
-        }
-        ++col;
-    }
-    ++row;
-
-    while (row < 6)
-    {
-        col = 0;
-        while (col < 8)
-        {
-            if (col % 2 == row % 2)
-            {
-                currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.blackBackground);
-            }
-            else
-            {
-                currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.whiteBackground);
-            }
-            ++col;
-        }
-        ++row;
-    }
-    col = 0;
-
-    while (col < 8)
-    {
-        if (col % 2 == 0)
-        {
-            currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.whitePawnBlackBackground);
-        }
-        else
-        {
-            currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.whitePawnWhiteBackground);
-        }
-        ++col;
-    }
-    ++row;
-    col = 0;
-
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.whiteRookWhiteBackground);
-    ++col;
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.whiteKnightBlackBackground);
-    ++col;
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.whiteBishopWhiteBackground);
-    ++col;
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.whiteKingBlackBackground);
-    ++col;
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.whiteQueenWhiteBackground);
-    ++col;
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.whiteBishopBlackBackground);
-    ++col;
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.whiteKnightWhiteBackground);
-    ++col;
-    currentState.squares[row][col] = createSquare(hwnd, SQUARECODE + row * 8 + col, static_cast<int>((currentState.rightEdge - currentState.leftEdge) * BOARDLEFT) + col * size, static_cast<int>((currentState.bottomEdge - currentState.topEdge) * BOARDTOP) + row * size, size, size, currentState.whiteRookBlackBackground);
-
-    if (currentState.singlePlayer && !currentState.player1IsWhite)
-    {
-        takeComputerTurn();
-    }
-}
-
 
 void destroyGameBoard()
 {
@@ -1135,7 +1227,6 @@ void destroyGameBoard()
     }
 }
 
-
 void createAbout(HWND hwnd)
 {
     currentState.windows[0] = createLabel(hwnd, L"Notes about the game:\nThere is a single player mode, but the \"AI\" just makes random moves.\n"
@@ -1151,20 +1242,45 @@ void destroyAbout()
     DestroyWindow(currentState.windows[1]);
 }
 
-void createBattle(Piece& attacker, Piece& defender)
+void createBattle()
 {
-    //2 Images, 2 Static health bars/status, 5 buttons for move and flee which switch sides/stay for single player
+    currentState.attackerTurn = true;
 
-    std::string message{ "Health" + std::to_string(attacker.getCurrentHealth()) + '/' + std::to_string(attacker.getMaxHealth()) + "   " + printStatus(attacker.getStatus()) };
+    double iconPercent{ 0.1 };
+    currentState.windows[0] = createIcon(currentState.mainWindow, 0.2, 0.4, iconPercent, iconPercent);
+    fillIcon(currentState.windows[0], currentState.attacker, static_cast<int>(iconPercent * (currentState.bottomEdge - currentState.topEdge)));
+
+    currentState.windows[1] = createIcon(currentState.mainWindow, 0.7, 0.4, iconPercent, iconPercent);
+    fillIcon(currentState.windows[1], currentState.defender, static_cast<int>(iconPercent * (currentState.bottomEdge - currentState.topEdge)));
+
+    std::string message{ "Health" + std::to_string(currentState.attacker.getCurrentHealth()) + '/' + std::to_string(currentState.attacker.getMaxHealth()) + "   " + printStatus(currentState.attacker.getStatus()) };
     currentState.windows[2] = createLabel(currentState.mainWindow, StringToWString(message).c_str(), 0.2, 0.5, 0.2, 0.1);
-    message = "Health" + std::to_string(defender.getCurrentHealth()) + '/' + std::to_string(defender.getMaxHealth()) + "   " + printStatus(defender.getStatus());
+    message = "Health" + std::to_string(currentState.defender.getCurrentHealth()) + '/' + std::to_string(currentState.defender.getMaxHealth()) + "   " + printStatus(currentState.defender.getStatus());
     currentState.windows[3] = createLabel(currentState.mainWindow, StringToWString(message).c_str(), 0.7, 0.5, 0.2, 0.1);
 
-    currentState.windows[4] = createButton(currentState.mainWindow, StringToWString(printMove(attacker.getMove1())).c_str(), static_cast<int>(WindowCode::move1),  0.2, 0.6, 0.1, 0.05);
-    currentState.windows[5] = createButton(currentState.mainWindow, StringToWString(printMove(attacker.getMove2())).c_str(), static_cast<int>(WindowCode::move2), 0.4, 0.6, 0.1, 0.05);
-    currentState.windows[6] = createButton(currentState.mainWindow, StringToWString(printMove(attacker.getMove3())).c_str(), static_cast<int>(WindowCode::move3), 0.2, 0.8, 0.1, 0.05);
-    currentState.windows[7] = createButton(currentState.mainWindow, StringToWString(printMove(attacker.getMove4())).c_str(), static_cast<int>(WindowCode::move4), 0.4, 0.8, 0.1, 0.05);
-    currentState.windows[8] = createButton(currentState.mainWindow, L"Flee", static_cast<int>(WindowCode::flee), 0.3, 0.9, 0.1, 0.05);
+    currentState.windows[9] = createButton(currentState.mainWindow, L"Exit Game", static_cast<int>(WindowCode::exit), 0.01, 0.01, 0.2, 0.1);
+
+    if (currentState.singlePlayer && currentState.defender.isWhite() == currentState.player1IsWhite)
+    {
+        computerBattle();
+    }
+    else
+    {
+        currentState.windows[4] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(1))).c_str(), static_cast<int>(WindowCode::move1), 0.2, 0.6, 0.1, 0.05);
+        currentState.windows[5] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(2))).c_str(), static_cast<int>(WindowCode::move2), 0.4, 0.6, 0.1, 0.05);
+        currentState.windows[6] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(3))).c_str(), static_cast<int>(WindowCode::move3), 0.2, 0.8, 0.1, 0.05);
+        currentState.windows[7] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(4))).c_str(), static_cast<int>(WindowCode::move4), 0.4, 0.8, 0.1, 0.05);
+        currentState.windows[8] = createButton(currentState.mainWindow, L"Flee", static_cast<int>(WindowCode::flee), 0.3, 0.9, 0.1, 0.05);
+    }
+}
+
+void updateBattle()
+{
+    std::string message{ "Health" + std::to_string(currentState.attacker.getCurrentHealth()) + '/' + std::to_string(currentState.attacker.getMaxHealth()) + "   " + printStatus(currentState.attacker.getStatus()) };
+    SetWindowText(currentState.windows[2], StringToWString(message).c_str());
+    message = "Health" + std::to_string(currentState.defender.getCurrentHealth()) + '/' + std::to_string(currentState.defender.getMaxHealth()) + "   " + printStatus(currentState.defender.getStatus());
+    SetWindowText(currentState.windows[3], StringToWString(message).c_str());
+
 }
 
 void destroyBattle()
@@ -1178,6 +1294,110 @@ void destroyBattle()
     DestroyWindow(currentState.windows[6]);
     DestroyWindow(currentState.windows[7]);
     DestroyWindow(currentState.windows[8]);
+    DestroyWindow(currentState.windows[9]);
+    DestroyWindow(currentState.windows[10]);
+}
+
+void computerBattle()
+{
+    int move{ getRandomNumber(1,4) };
+    useMove(move);
+}
+
+void changeTurns()
+{
+    if (!currentState.attackerTurn)
+    {
+        currentState.attackerTurn = !currentState.attackerTurn;
+        DestroyWindow(currentState.windows[4]);
+        DestroyWindow(currentState.windows[5]);
+        DestroyWindow(currentState.windows[6]);
+        DestroyWindow(currentState.windows[7]);
+        DestroyWindow(currentState.windows[8]);
+
+        currentState.windows[4] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(1))).c_str(), static_cast<int>(WindowCode::move1), 0.2, 0.6, 0.1, 0.05);
+        currentState.windows[5] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(2))).c_str(), static_cast<int>(WindowCode::move2), 0.4, 0.6, 0.1, 0.05);
+        currentState.windows[6] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(3))).c_str(), static_cast<int>(WindowCode::move3), 0.2, 0.8, 0.1, 0.05);
+        currentState.windows[7] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(4))).c_str(), static_cast<int>(WindowCode::move4), 0.4, 0.8, 0.1, 0.05);
+        currentState.windows[8] = createButton(currentState.mainWindow, L"Flee", static_cast<int>(WindowCode::flee), 0.3, 0.9, 0.1, 0.05);
+    }
+    else
+    {
+        currentState.attackerTurn = !currentState.attackerTurn;
+        DestroyWindow(currentState.windows[4]);
+        DestroyWindow(currentState.windows[5]);
+        DestroyWindow(currentState.windows[6]);
+        DestroyWindow(currentState.windows[7]);
+        DestroyWindow(currentState.windows[8]);
+
+        currentState.windows[4] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.defender.getMove(1))).c_str(), static_cast<int>(WindowCode::move1), 0.7, 0.6, 0.1, 0.05);
+        currentState.windows[5] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.defender.getMove(2))).c_str(), static_cast<int>(WindowCode::move2), 0.9, 0.6, 0.1, 0.05);
+        currentState.windows[6] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.defender.getMove(3))).c_str(), static_cast<int>(WindowCode::move3), 0.7, 0.8, 0.1, 0.05);
+        currentState.windows[7] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.defender.getMove(4))).c_str(), static_cast<int>(WindowCode::move4), 0.9, 0.8, 0.1, 0.05);
+    }
+}
+
+void useMove(int move)
+{
+    if (!currentState.waiting)
+    {
+        currentState.handledStatus = false;
+        if (currentState.attackerTurn)
+        {
+            int startingHealth{ currentState.defender.getCurrentHealth() };
+            Piece::Status startingStatus{ currentState.defender.getStatus() };
+            currentState.attacker.useMove(currentState.defender, currentState.attacker.getMove(move));
+
+            std::string message{ printMove(currentState.attacker.getMove(move)) + " dealt "
+                + std::to_string(startingHealth - currentState.defender.getCurrentHealth()) + " damage.\n" };
+
+            if (currentState.defender.getStatus() != startingStatus)
+            {
+                message += "Inflicted " + printStatus(currentState.defender.getStatus());
+            }
+            currentState.windows[10] = createLabel(currentState.mainWindow, StringToWString(message).c_str(),
+                DESCRIPTIONBOXLEFT, DESCRIPTIONBOXTOP, DESCRIPTIONBOXWIDTH, DESCRIPTIONBOXHEIGHT);
+            waitBattle(3000);
+        }
+        else
+        {
+            int startingHealth{ currentState.attacker.getCurrentHealth() };
+            Piece::Status startingStatus{ currentState.attacker.getStatus() };
+            currentState.defender.useMove(currentState.attacker, currentState.defender.getMove(move));
+
+            std::string message{ printMove(currentState.defender.getMove(move)) + " dealt "
+                + std::to_string(startingHealth - currentState.attacker.getCurrentHealth()) + " damage.\n" };
+
+            if (currentState.attacker.getStatus() != startingStatus)
+            {
+                message += "Inflicted " + printStatus(currentState.attacker.getStatus());
+            }
+            currentState.windows[10] = createLabel(currentState.mainWindow, StringToWString(message).c_str(),
+                DESCRIPTIONBOXLEFT, DESCRIPTIONBOXTOP, DESCRIPTIONBOXWIDTH, DESCRIPTIONBOXHEIGHT);
+            waitBattle(3000);
+        }
+    }
+}
+
+void handleStatus()
+{
+    //This function is called before the turns actually change
+    currentState.handledStatus = true;
+    std::string message{};
+    if (currentState.attackerTurn)
+    {
+        message = currentState.defender.getName() + " is " + printStatus(currentState.defender.getStatus());
+        currentState.defender.decrementStatusTurns();
+    }
+    else
+    {
+        message = currentState.attacker.getName() + " is " + printStatus(currentState.attacker.getStatus());
+        currentState.attacker.decrementStatusTurns();
+    }
+
+    currentState.windows[10] = createLabel(currentState.mainWindow, StringToWString(message).c_str(),
+        DESCRIPTIONBOXLEFT, DESCRIPTIONBOXTOP, DESCRIPTIONBOXWIDTH, DESCRIPTIONBOXHEIGHT);
+    waitBattle(3000);
 }
 
 void exitCases(HWND hwnd)
@@ -1204,6 +1424,16 @@ void exitCases(HWND hwnd)
         break;
     case CurrentActivity::createLoadout :
         destroyLoadoutScreen();
+        createMainMenu(hwnd);
+        currentState.currentActivity = CurrentActivity::mainMenu;
+        break;
+    case CurrentActivity::battle :
+        destroyBattle();
+        createMainMenu(hwnd);
+        currentState.currentActivity = CurrentActivity::mainMenu;
+        break;
+    case CurrentActivity::victoryScreen :
+        destroyVictoryScreen();
         createMainMenu(hwnd);
         currentState.currentActivity = CurrentActivity::mainMenu;
         break;
@@ -1262,7 +1492,6 @@ void useSpecial(int row, int col)
     }
     case Piece::Type::Knight:
     {
-        //Not working going down and right
         if (currentState.selectedRow > row)
         {
             currentState.board.getPiece(row + 1, col).dealDamage(3);
@@ -1274,7 +1503,6 @@ void useSpecial(int row, int col)
         }
         else if (row > currentState.selectedRow)
         {
-            //Hmmmmm
             currentState.board.getPiece(row - 1, col).dealDamage(3);
             if (currentState.board.getPiece(row - 1, col).isDead())
             {
@@ -1293,7 +1521,6 @@ void useSpecial(int row, int col)
         }
         else
         {
-            //Hmmmmmmm
             currentState.board.getPiece(row, col - 1).dealDamage(3);
             if (currentState.board.getPiece(row, col - 1).isDead())
             {
@@ -1308,12 +1535,11 @@ void useSpecial(int row, int col)
     case Piece::Type::Bishop:
     {
         currentState.board.getPiece(row, col).dealDamage(-5);
-        currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).allowMovement();
+        currentState.selectedPiece.allowMovement();
         break;
     }
     }
 }
-
 
 void updateBoard(int row, int col)
 {
@@ -1331,7 +1557,7 @@ void updateBoard(int row, int col)
     }
     //Castle update
 
-    if (currentState.selectedPiece.getType() == Piece::Type::King)
+    if (currentState.board.getPiece(row, col).getType() == Piece::Type::King)
     {
         if (currentState.selectedCol - col == 2)
         {
@@ -1342,19 +1568,8 @@ void updateBoard(int row, int col)
             deselectSquare(row, 7);
         }
     }
-
-
-    if (currentState.selectedPiece.getType() == Piece::Type::Pawn)
-    {
-        if ((currentState.selectedPiece.isWhite() && row == 0) || (!currentState.selectedPiece.isWhite() && row == 7))
-        {
-            promotePawn(row, col);
-        }
-    }
 }
 
-
-//Only does squares which are currently blue
 void deselectAll()
 {
     for (int i{ 0 }; i < 8; ++i)
@@ -1376,9 +1591,9 @@ void createPieceDescription(int row, int col)
     Piece p{ currentState.board.getPiece(row,col) };
     
     std::string message{};
-    message = "Health: " + std::to_string(p.getCurrentHealth()) + '/'+ std::to_string(p.getMaxHealth())
-        + "\nMove1: " + printMove(p.getMove1()) + "\nMove2: " + printMove(p.getMove2())
-        + "\nMove3: "+ printMove(p.getMove3()) + "\nMove4: " + printMove(p.getMove4());
+    message = p.getName() + "\nHealth: " + std::to_string(p.getCurrentHealth()) + '/'+ std::to_string(p.getMaxHealth())
+        + "\nMove1: " + printMove(p.getMove(1)) + "\nMove2: " + printMove(p.getMove(2))
+        + "\nMove3: "+ printMove(p.getMove(3)) + "\nMove4: " + printMove(p.getMove(4));
     if (p.getType() == Piece::Type::Rook && p.isUsingSpecial())
     {
         message += "\nFortified";
@@ -1451,8 +1666,6 @@ void setBlue(const std::array<std::array<bool, 8>, 8>& valid)
         }
     }
 }
-
-
 
 std::array<std::array<bool, 8>, 8> specialSquares()
 {
@@ -1537,7 +1750,8 @@ std::array<std::array<bool, 8>, 8> specialSquares()
 
 void useTurn()
 {
-    currentState.selectedPiece = Grid::noPiece;
+    currentState.selectedRow = -1;
+    currentState.selectedCol = -1;
     destroyPieceDescription();
     if (currentState.singlePlayer)
     {
@@ -1557,7 +1771,6 @@ void squarePressed(int row, int col)
         destroyPieceDescription();
         if (!currentState.blueSquares[row][col] && currentState.board.getPiece(row, col) != Grid::noPiece)
         {
-            currentState.selectedPiece = currentState.board.getPiece(row, col);
             currentState.selectedCol = col;
             currentState.selectedRow = row;
 
@@ -1572,17 +1785,14 @@ void squarePressed(int row, int col)
                 }
                 else
                 {
-                    currentState.board.getPiece(row, col).allowMovement();
+                    currentState.selectedPiece.allowMovement();
                     setBlue(currentState.board.reachable(row, col));
                 }
             }
-
-            
             createPieceDescription(row, col);
         }
         else if (currentState.selectedPiece != Grid::noPiece)
         {
-            
             if (currentState.blueSquares[row][col])
             {
                 if (currentState.selectedPiece.isUsingSpecial())
@@ -1592,10 +1802,26 @@ void squarePressed(int row, int col)
                 }
                 else
                 {
-                    //Start battle here
-                    //These functions should be put at the end of battle
-                    currentState.board.movePiece(currentState.selectedRow, currentState.selectedCol, row, col);
-                    updateBoard(row, col);
+                    if (currentState.board.getPiece(row, col) != Grid::noPiece)
+                    {
+                        currentState.defenderCol = col;
+                        currentState.defenderRow = row;
+                        currentState.currentActivity = CurrentActivity::battle;
+                        currentState.waitingForInput = true;
+                        destroyGameBoard();
+                        createBattle();
+                        //At end of battle, need to:
+                        //Move piece
+                        //update board
+                        //waiting is false
+                        //Unselect piece
+                    }
+                    else
+                    {
+                        currentState.board.movePiece(currentState.selectedRow, currentState.selectedCol, row, col);
+                        updateBoard(row, col);
+                    }
+                    
                 }
                 if (currentState.singlePlayer && !currentState.waitingForInput)
                 {
@@ -1611,8 +1837,12 @@ void squarePressed(int row, int col)
             {
                 deselectAll();
             }
-            currentState.selectedPiece = Grid::noPiece;
-            
+            if (!currentState.waitingForInput)
+            {
+                currentState.selectedRow = -1;
+                currentState.selectedCol = -1;
+            }
+             
         }
     }
 }
@@ -1623,30 +1853,46 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
     {
         case static_cast<int>(WindowCode::startGame) :
         {
-            createGameBoard(hwnd);
+            //Replace with non-default later
+            //Need to getcursel of loadouts
+            currentState.board = Grid{};
+
+            currentState.isWhiteTurn = true;
+            if (getRandomNumber(0, 1) == 0)
+            {
+                currentState.player1IsWhite = true;
+            }
+            else
+            {
+                currentState.player1IsWhite = false;
+            }
+            
             if (currentState.singlePlayer)
             {
                 wchar_t name[30];
                 GetWindowText(currentState.windows[1], name, 30);
-                SetWindowText(currentState.windows[5], name);
-                SetWindowText(currentState.windows[6], L"Computer");
+                currentState.player1name = std::wstring{ name };
 
-                currentState.player1Loadout = SendMessage(currentState.windows[3], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0) + 1;
+                currentState.player2name = L"Computer";
+
+                currentState.player1Loadout = static_cast<int>(SendMessage(currentState.windows[3], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0) + 1);
                 currentState.player2Loadout = 0;
             }
             else
             {
                 wchar_t name[30];
                 GetWindowText(currentState.windows[1], name, 30);
-                SetWindowText(currentState.windows[5], name);
+                currentState.player1name = std::wstring{ name };
                 GetWindowText(currentState.windows[2], name, 30);
-                SetWindowText(currentState.windows[6], name);
-                currentState.player1Loadout = SendMessage(currentState.windows[3], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0) + 1;
-                currentState.player2Loadout = SendMessage(currentState.windows[4], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0) + 1;
+                currentState.player2name = std::wstring{ name };
+                
+                currentState.player1Loadout = static_cast<int>(SendMessage(currentState.windows[3], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0) + 1);
+                currentState.player2Loadout = static_cast<int>(SendMessage(currentState.windows[4], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0) + 1);
             }
+
+            createGameBoard(hwnd);
             
             destroySelectScreen();
-            colorBoard(hwnd);
             currentState.currentActivity = CurrentActivity::board;
             break;
         }
@@ -1700,17 +1946,17 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
             {
                 if (currentState.selectedPiece.isUsingSpecial())
                 {
-                    currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).allowMovement();
+                    currentState.selectedPiece.allowMovement();
                 }
                 else
                 {
-                    currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).useSpecial();
+                    currentState.selectedPiece.useSpecial();
                 }
                 useTurn();
                 break;
             }
 
-            currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).useSpecial();
+            currentState.selectedPiece.useSpecial();
             setBlue(specialSquares());
             destroyPieceDescription();
             createPieceDescription(currentState.selectedRow, currentState.selectedCol);
@@ -1719,7 +1965,8 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
         }
         case static_cast<int>(WindowCode::move) :
         {
-            currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).allowMovement();
+            currentState.selectedPiece.allowMovement();
+            currentState.selectedPiece.allowMovement();
             destroyPieceDescription();
             createPieceDescription(currentState.selectedRow, currentState.selectedCol);
             deselectAll();
@@ -1729,23 +1976,28 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
         case static_cast<int>(WindowCode::promoteRook) :
         {
             Piece rook{};
-            if (currentState.singlePlayer || (currentState.player1IsWhite == currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).isWhite()))
+            if (currentState.singlePlayer || (currentState.player1IsWhite == currentState.selectedPiece.isWhite()))
             {
                 rook = Piece(Piece::Type::Rook, currentState.loadouts[currentState.player1Loadout].moves[4],
                     currentState.loadouts[currentState.player1Loadout].moves[5], currentState.loadouts[currentState.player1Loadout].moves[6],
-                    currentState.loadouts[currentState.player1Loadout].moves[7], Piece::pieceHealth[static_cast<int>(Piece::Type::Rook)], currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).isWhite());
+                    currentState.loadouts[currentState.player1Loadout].moves[7], currentState.selectedPiece.isWhite());
             }
             else
             {
                 rook = Piece(Piece::Type::Rook, currentState.loadouts[currentState.player2Loadout].moves[4],
                     currentState.loadouts[currentState.player2Loadout].moves[5], currentState.loadouts[currentState.player2Loadout].moves[6],
-                    currentState.loadouts[currentState.player2Loadout].moves[7], Piece::pieceHealth[static_cast<int>(Piece::Type::Rook)], currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).isWhite());
+                    currentState.loadouts[currentState.player2Loadout].moves[7], currentState.selectedPiece.isWhite());
             }
             currentState.board.addPiece(rook, currentState.selectedRow, currentState.selectedCol);
             deselectSquare(currentState.selectedRow, currentState.selectedCol);
             currentState.waitingForInput = false;
-            takeComputerTurn();
-
+            if (currentState.singlePlayer)
+            {
+                takeComputerTurn();
+            }
+            currentState.selectedRow = -1;
+            currentState.selectedCol = -1;
+            
             DestroyWindow(currentState.windows[8]);
             DestroyWindow(currentState.windows[9]);
             DestroyWindow(currentState.windows[10]);
@@ -1756,22 +2008,27 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
         case static_cast<int>(WindowCode::promoteKnight) :
         {
             Piece knight{};
-            if (currentState.singlePlayer || (currentState.player1IsWhite == currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).isWhite()))
+            if (currentState.singlePlayer || (currentState.player1IsWhite == currentState.selectedPiece.isWhite()))
             {
                 knight = Piece(Piece::Type::Knight, currentState.loadouts[currentState.player1Loadout].moves[8],
                     currentState.loadouts[currentState.player1Loadout].moves[9], currentState.loadouts[currentState.player1Loadout].moves[10],
-                    currentState.loadouts[currentState.player1Loadout].moves[11], Piece::pieceHealth[static_cast<int>(Piece::Type::Knight)], currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).isWhite());
+                    currentState.loadouts[currentState.player1Loadout].moves[11], currentState.selectedPiece.isWhite());
             }
             else
             {
                 knight = Piece(Piece::Type::Knight, currentState.loadouts[currentState.player2Loadout].moves[8],
                     currentState.loadouts[currentState.player2Loadout].moves[9], currentState.loadouts[currentState.player2Loadout].moves[10],
-                    currentState.loadouts[currentState.player2Loadout].moves[11], Piece::pieceHealth[static_cast<int>(Piece::Type::Knight)], currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).isWhite());
+                    currentState.loadouts[currentState.player2Loadout].moves[11], currentState.selectedPiece.isWhite());
             }
             currentState.board.addPiece(knight, currentState.selectedRow, currentState.selectedCol);
             deselectSquare(currentState.selectedRow, currentState.selectedCol);
             currentState.waitingForInput = false;
-            takeComputerTurn();
+            if (currentState.singlePlayer)
+            {
+                takeComputerTurn();
+            }
+            currentState.selectedRow = -1;
+            currentState.selectedCol = -1;
 
             DestroyWindow(currentState.windows[8]);
             DestroyWindow(currentState.windows[9]);
@@ -1783,22 +2040,27 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
         case static_cast<int>(WindowCode::promoteBishop) :
         {
             Piece bishop{};
-            if (currentState.singlePlayer || (currentState.player1IsWhite == currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).isWhite()))
+            if (currentState.singlePlayer || (currentState.player1IsWhite == currentState.selectedPiece.isWhite()))
             {
                 bishop = Piece(Piece::Type::Bishop, currentState.loadouts[currentState.player1Loadout].moves[12],
                     currentState.loadouts[currentState.player1Loadout].moves[13], currentState.loadouts[currentState.player1Loadout].moves[14],
-                    currentState.loadouts[currentState.player1Loadout].moves[15], Piece::pieceHealth[static_cast<int>(Piece::Type::Bishop)], currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).isWhite());
+                    currentState.loadouts[currentState.player1Loadout].moves[15], currentState.selectedPiece.isWhite());
             }
             else
             {
                 bishop = Piece(Piece::Type::Bishop, currentState.loadouts[currentState.player2Loadout].moves[12],
                     currentState.loadouts[currentState.player2Loadout].moves[13], currentState.loadouts[currentState.player2Loadout].moves[14],
-                    currentState.loadouts[currentState.player2Loadout].moves[15], Piece::pieceHealth[static_cast<int>(Piece::Type::Bishop)], currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).isWhite());
+                    currentState.loadouts[currentState.player2Loadout].moves[15], currentState.selectedPiece.isWhite());
             }
             currentState.board.addPiece(bishop, currentState.selectedRow, currentState.selectedCol);
             deselectSquare(currentState.selectedRow, currentState.selectedCol);
             currentState.waitingForInput = false;
-            takeComputerTurn();
+            if (currentState.singlePlayer)
+            {
+                takeComputerTurn();
+            }
+            currentState.selectedRow = -1;
+            currentState.selectedCol = -1;
 
             DestroyWindow(currentState.windows[8]);
             DestroyWindow(currentState.windows[9]);
@@ -1810,22 +2072,27 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
         case static_cast<int>(WindowCode::promoteQueen) :
         {
             Piece queen{};
-            if (currentState.singlePlayer || (currentState.player1IsWhite == currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).isWhite()))
+            if (currentState.singlePlayer || (currentState.player1IsWhite == currentState.selectedPiece.isWhite()))
             {
                 queen = Piece(Piece::Type::Queen, currentState.loadouts[currentState.player1Loadout].moves[16],
                     currentState.loadouts[currentState.player1Loadout].moves[17], currentState.loadouts[currentState.player1Loadout].moves[18],
-                    currentState.loadouts[currentState.player1Loadout].moves[19], Piece::pieceHealth[static_cast<int>(Piece::Type::Queen)], currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).isWhite());
+                    currentState.loadouts[currentState.player1Loadout].moves[19], currentState.selectedPiece.isWhite());
             }
             else
             {
                 queen = Piece(Piece::Type::Queen, currentState.loadouts[currentState.player2Loadout].moves[16],
                     currentState.loadouts[currentState.player2Loadout].moves[17], currentState.loadouts[currentState.player2Loadout].moves[18],
-                    currentState.loadouts[currentState.player2Loadout].moves[19], Piece::pieceHealth[static_cast<int>(Piece::Type::Queen)], currentState.board.getPiece(currentState.selectedRow, currentState.selectedCol).isWhite());
+                    currentState.loadouts[currentState.player2Loadout].moves[19], currentState.selectedPiece.isWhite());
             }
             currentState.board.addPiece(queen, currentState.selectedRow, currentState.selectedCol);
             deselectSquare(currentState.selectedRow, currentState.selectedCol);
             currentState.waitingForInput = false;
-            takeComputerTurn();
+            if (currentState.singlePlayer)
+            {
+                takeComputerTurn();
+            }
+            currentState.selectedRow = -1;
+            currentState.selectedCol = -1;
 
             DestroyWindow(currentState.windows[8]);
             DestroyWindow(currentState.windows[9]);
@@ -1838,7 +2105,7 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
         {
             if (HIWORD(wParam) == CBN_SELCHANGE && currentState.currentActivity == CurrentActivity::createLoadout)
             {
-                int newLoadout = SendMessage(currentState.windows[2], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+                int newLoadout = static_cast<int>(SendMessage(currentState.windows[2], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
                 SendMessage(currentState.windows[3], (UINT)CB_SETCURSEL, (WPARAM)0, (LPARAM)0);
                 SendMessage(currentState.windows[4], (UINT)CB_SETCURSEL, (WPARAM)static_cast<int>(currentState.loadouts[newLoadout + 1].moves[0]), (LPARAM)0);
                 SendMessage(currentState.windows[5], (UINT)CB_SETCURSEL, (WPARAM)static_cast<int>(currentState.loadouts[newLoadout + 1].moves[1]), (LPARAM)0);
@@ -1851,8 +2118,8 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
         {
             if (HIWORD(wParam) == CBN_SELCHANGE)
             {
-                int newLoadout = SendMessage(currentState.windows[2], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
-                int piece = SendMessage(currentState.windows[3], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+                int newLoadout = static_cast<int>(SendMessage(currentState.windows[2], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
+                int piece = static_cast<int>(SendMessage(currentState.windows[3], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
                 SendMessage(currentState.windows[4], (UINT)CB_SETCURSEL, (WPARAM)static_cast<int>(currentState.loadouts[newLoadout + 1].moves[piece*4]), (LPARAM)0);
                 SendMessage(currentState.windows[5], (UINT)CB_SETCURSEL, (WPARAM)static_cast<int>(currentState.loadouts[newLoadout + 1].moves[piece*4 + 1]), (LPARAM)0);
                 SendMessage(currentState.windows[6], (UINT)CB_SETCURSEL, (WPARAM)static_cast<int>(currentState.loadouts[newLoadout + 1].moves[piece*4 + 2]), (LPARAM)0);
@@ -1864,7 +2131,7 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
         {
             if (HIWORD(wParam) == CBN_SELCHANGE)
             {
-                int newMove = SendMessage(currentState.windows[4], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+                int newMove = static_cast<int>(SendMessage(currentState.windows[4], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
                 SetWindowText(currentState.windows[16], StringToWString(getDescription(static_cast<Piece::Move>(newMove))).c_str());
             }
             break;
@@ -1873,7 +2140,7 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
         {
             if (HIWORD(wParam) == CBN_SELCHANGE)
             {
-                int newMove = SendMessage(currentState.windows[5], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+                int newMove = static_cast<int>(SendMessage(currentState.windows[5], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
                 SetWindowText(currentState.windows[17], StringToWString(getDescription(static_cast<Piece::Move>(newMove))).c_str());
             }
             break;
@@ -1882,7 +2149,8 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
         {
             if (HIWORD(wParam) == CBN_SELCHANGE)
             {
-                int newMove = SendMessage(currentState.windows[6], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+                
+                int newMove = static_cast<int>(SendMessage(currentState.windows[6], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
                 SetWindowText(currentState.windows[18], StringToWString(getDescription(static_cast<Piece::Move>(newMove))).c_str());
             }
             break;
@@ -1891,9 +2159,181 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
         {
             if (HIWORD(wParam) == CBN_SELCHANGE)
             {
-                int newMove = SendMessage(currentState.windows[7], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+                int newMove = static_cast<int>(SendMessage(currentState.windows[7], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
                 SetWindowText(currentState.windows[19], StringToWString(getDescription(static_cast<Piece::Move>(newMove))).c_str());
             }
+            break;
+        }
+        case static_cast<int>(WindowCode::move1) :
+        {
+            useMove(1);
+            break;
+        }
+        case static_cast<int>(WindowCode::move2) :
+        {
+            useMove(2);
+            break;
+        }
+        case static_cast<int>(WindowCode::move3) :
+        {
+            useMove(3);
+            break;
+        }
+        case static_cast<int>(WindowCode::move4) :
+        {
+            useMove(4);
+            break;
+        }
+        case static_cast<int>(WindowCode::flee) :
+        {
+            int success{ getRandomNumber(0,1) };
+            if (success == 0)
+            {
+                std::string message{};
+                if (currentState.attackerTurn)
+                {
+                    message = currentState.attacker.getName();
+                }
+                else
+                {
+                    message = currentState.defender.getName();
+                }
+                message += " failed to flee";
+                currentState.windows[10] = createLabel(hwnd, StringToWString(message).c_str(), DESCRIPTIONBOXLEFT, DESCRIPTIONBOXTOP, DESCRIPTIONBOXWIDTH, DESCRIPTIONBOXHEIGHT);
+
+                waitBattle(3000);
+            }
+            else
+            {
+                std::string message{};
+                if (currentState.attackerTurn)
+                {
+                    message = currentState.attacker.getName();
+                }
+                else
+                {
+                    message = currentState.defender.getName();
+                }
+                message += " fled";
+                currentState.windows[10] = createLabel(hwnd, StringToWString(message).c_str(), DESCRIPTIONBOXLEFT, DESCRIPTIONBOXTOP, DESCRIPTIONBOXWIDTH, DESCRIPTIONBOXHEIGHT);
+
+                waitDone(3000);
+            }
+            break;
+        }
+        case static_cast<int>(WindowCode::usingMove) :
+        {
+            DestroyWindow(currentState.windows[10]);
+            KillTimer(currentState.mainWindow, static_cast<int>(WindowCode::usingMove));
+            currentState.waiting = false;
+            updateBattle();
+            if (currentState.attacker.isDead() && currentState.defender.isDead())
+            {
+                currentState.board.removePiece(currentState.attackerRow, currentState.attackerCol);
+                currentState.board.removePiece(currentState.defenderRow, currentState.defenderCol);
+                currentState.windows[10] = currentState.windows[10] = createLabel(currentState.mainWindow, L"Both pieces died",
+                    DESCRIPTIONBOXLEFT, DESCRIPTIONBOXTOP, DESCRIPTIONBOXWIDTH, DESCRIPTIONBOXHEIGHT);
+                waitDone(3000);
+            }
+            else if (currentState.attacker.isDead())
+            {
+                
+                std::string message{};
+                if (currentState.attacker.isWhite())
+                {
+                    message += "White ";
+                }
+                else
+                {
+                    message += "Black ";
+                }
+                message += printType(currentState.attacker.getType()) + " died";
+                currentState.windows[10] = currentState.windows[10] = createLabel(currentState.mainWindow, StringToWString(message).c_str(),
+                    DESCRIPTIONBOXLEFT, DESCRIPTIONBOXTOP, DESCRIPTIONBOXWIDTH, DESCRIPTIONBOXHEIGHT);
+                currentState.board.removePiece(currentState.attackerRow, currentState.attackerCol);
+                waitDone(3000);
+            }
+            else if (currentState.defender.isDead())
+            {
+                
+                std::string message{};
+                if (currentState.defender.isWhite())
+                {
+                    message += "White ";
+                }
+                else
+                {
+                    message += "Black ";
+                }
+                message += printType(currentState.defender.getType()) + " died";
+                currentState.windows[10] = currentState.windows[10] = createLabel(currentState.mainWindow, StringToWString(message).c_str(),
+                    DESCRIPTIONBOXLEFT, DESCRIPTIONBOXTOP, DESCRIPTIONBOXWIDTH, DESCRIPTIONBOXHEIGHT);
+                currentState.board.movePiece(currentState.attackerRow, currentState.attackerCol, currentState.defenderRow, currentState.defenderCol);
+                waitDone(3000);
+            }
+            else if (!currentState.handledStatus && 
+                ((currentState.attackerTurn && currentState.defender.getStatus() != Piece::Status::MAX_STATUSES) || 
+                    (!currentState.attackerTurn && currentState.attacker.getStatus() != Piece::Status::MAX_STATUSES)))
+            {
+                handleStatus();
+            }
+            else
+            {
+                if (currentState.singlePlayer)
+                {
+                    if ((currentState.attackerTurn && (currentState.attacker.isWhite() != currentState.player1IsWhite))
+                        || (!currentState.attackerTurn && (currentState.defender.isWhite() != currentState.player1IsWhite)))
+                    {
+                        changeTurns();
+                    }
+                    else
+                    {
+                        currentState.attackerTurn = !currentState.attackerTurn;
+                        DestroyWindow(currentState.windows[4]);
+                        DestroyWindow(currentState.windows[5]);
+                        DestroyWindow(currentState.windows[6]);
+                        DestroyWindow(currentState.windows[7]);
+                        DestroyWindow(currentState.windows[8]);
+                        computerBattle();
+                    }
+                }
+                else
+                {
+                    changeTurns();
+                }
+            }
+            break;
+        }
+        case static_cast<int>(WindowCode::finishingBattle) :
+        {
+            destroyBattle();
+            
+            updateBoard(currentState.defenderRow, currentState.defenderCol);
+            createGameBoard(hwnd);
+            
+            if (currentState.board.getPiece(currentState.defenderRow, currentState.defenderCol).getType() == Piece::Type::Pawn)
+            {
+                if ((currentState.board.getPiece(currentState.defenderRow, currentState.defenderCol).isWhite() && currentState.defenderRow == 0)
+                    || (!currentState.board.getPiece(currentState.defenderRow, currentState.defenderCol).isWhite() && currentState.defenderRow == 7))
+                {
+                    promotePawn(currentState.defenderRow, currentState.defenderCol);
+                }
+            }
+
+
+            currentState.waitingForInput = false;
+            currentState.waiting = false;
+            currentState.currentActivity = CurrentActivity::board;
+
+            if (currentState.singlePlayer)
+            {
+                if (currentState.defender.isWhite() != currentState.player1IsWhite)
+                {
+                    takeComputerTurn();
+                }
+            }
+            
+            KillTimer(currentState.mainWindow, static_cast<int>(WindowCode::finishingBattle));
             break;
         }
         default :
@@ -1904,11 +2344,6 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
             break;
     }
 }
-
-
-
-
-
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -1931,6 +2366,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         createMainMenu(hwnd);
         break;
     }
+    case WM_TIMER :
     case WM_COMMAND:
         buttonPressed(hwnd, wParam);
         break;
