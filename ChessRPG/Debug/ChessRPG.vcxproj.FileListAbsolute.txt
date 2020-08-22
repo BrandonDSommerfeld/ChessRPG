@@ -1,2 +1,0 @@
-C:\Users\Brandon\source\repos\ChessRPG\Debug\ChessRPG.exe
-C:\Users\Brandon\source\repos\ChessRPG\Debug\ChessRPG.pdb

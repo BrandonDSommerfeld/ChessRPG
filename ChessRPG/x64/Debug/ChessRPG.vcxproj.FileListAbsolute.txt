@@ -1,2 +1,0 @@
-C:\Github Repos\ChessRPG\ChessRPG\x64\Debug\ChessRPG.exe
-C:\Github Repos\ChessRPG\ChessRPG\x64\Debug\ChessRPG.pdb
