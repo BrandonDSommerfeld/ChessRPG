@@ -1,9 +1,0 @@
-﻿  ChessRPG.cpp
-C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(228,1): warning C4312: 'reinterpret_cast': conversion from 'int' to 'HMENU' of greater size
-C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(334,12): warning C4312: 'reinterpret_cast': conversion from 'int' to 'HMENU' of greater size
-C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(344,1): warning C4312: 'reinterpret_cast': conversion from 'int' to 'HMENU' of greater size
-C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(364,1): warning C4312: 'reinterpret_cast': conversion from 'int' to 'HMENU' of greater size
-  Grid.cpp
-  Piece.cpp
-  Generating Code...
-  ChessRPG.vcxproj -> C:\Github Repos\ChessRPG\ChessRPG\x64\Debug\ChessRPG.exe
