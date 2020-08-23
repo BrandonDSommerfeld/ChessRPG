@@ -1287,11 +1287,6 @@ void takeComputerTurn()
                                 currentState.waitingForInput = true;
                                 destroyGameBoard();
                                 createBattle();
-                                //At end of battle, need to:
-                                //Move piece
-                                //update board
-                                //waiting is false
-                                //Unselect piece
                             }
                             else
                             {
@@ -2074,6 +2069,14 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
             
             destroySelectScreen();
             currentState.currentActivity = CurrentActivity::board;
+            currentState.selectedCol = -1;
+            currentState.selectedRow = -1;
+            currentState.defenderCol = -1;
+            currentState.defenderRow = -1;
+            currentState.waitingForInput = false;
+            currentState.waiting = false;
+            currentState.attackerTurn = true;
+            currentState.handledStatus = false;
             break;
         }
         case static_cast<int>(WindowCode::singlePlayer) :
