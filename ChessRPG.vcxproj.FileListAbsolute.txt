@@ -1,1 +1,1 @@
-C:\Github Repos\ChessRPG\ChessRPG\x64\Release\ChessRPG.exe
+C:\Github Repos\ChessRPG\Code\x64\Release\ChessRPG.exe

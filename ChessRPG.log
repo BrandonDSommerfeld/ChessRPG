@@ -1,12 +1,12 @@
 ﻿  ChessRPG.cpp
-C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(237,1): warning C4312: 'reinterpret_cast': conversion from 'int' to 'HMENU' of greater size
-C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(343,12): warning C4312: 'reinterpret_cast': conversion from 'int' to 'HMENU' of greater size
-C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(353,1): warning C4312: 'reinterpret_cast': conversion from 'int' to 'HMENU' of greater size
-C:\Github Repos\ChessRPG\ChessRPG\ChessRPG.cpp(373,1): warning C4312: 'reinterpret_cast': conversion from 'int' to 'HMENU' of greater size
+C:\Github Repos\ChessRPG\Code\ChessRPG.cpp(237,1): warning C4312: 'reinterpret_cast': conversion from 'int' to 'HMENU' of greater size
+C:\Github Repos\ChessRPG\Code\ChessRPG.cpp(343,12): warning C4312: 'reinterpret_cast': conversion from 'int' to 'HMENU' of greater size
+C:\Github Repos\ChessRPG\Code\ChessRPG.cpp(353,1): warning C4312: 'reinterpret_cast': conversion from 'int' to 'HMENU' of greater size
+C:\Github Repos\ChessRPG\Code\ChessRPG.cpp(373,1): warning C4312: 'reinterpret_cast': conversion from 'int' to 'HMENU' of greater size
   Grid.cpp
   Piece.cpp
   Generating code
   Previous IPDB not found, fall back to full compilation.
   All 403 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
   Finished generating code
-  ChessRPG.vcxproj -> C:\Github Repos\ChessRPG\ChessRPG\x64\Release\ChessRPG.exe
+  ChessRPG.vcxproj -> C:\Github Repos\ChessRPG\Code\x64\Release\ChessRPG.exe
