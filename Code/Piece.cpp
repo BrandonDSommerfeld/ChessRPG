@@ -133,6 +133,17 @@ void Piece::allowMovement()
 
 void Piece::dealDamage(int amount)
 {
+	if (amount < 0)
+	{
+		m_currentHealth -= amount;
+		if (m_currentHealth > m_maxHealth)
+		{
+			m_currentHealth = m_maxHealth;
+		}
+		return;
+	}
+
+
 	if (m_usingSpecial && m_type == Piece::Type::Rook)
 	{
 		--amount;
@@ -151,10 +162,6 @@ void Piece::dealDamage(int amount)
 		amount = 0;
 	}
 	m_currentHealth -= amount;
-	if (m_currentHealth > m_maxHealth)
-	{
-		m_currentHealth = m_maxHealth;
-	}
 }
 
 int Piece::getStatusTurns()
@@ -190,6 +197,8 @@ void Piece::reset()
 	m_addingDamage = false;
 	m_critChance = 10;
 	m_jerichoCount = 0;
+	m_status = Piece::Status::MAX_STATUSES;
+	m_statusTurns = 0;
 }
 
 bool operator== (const Piece& piece1, const Piece& piece2)

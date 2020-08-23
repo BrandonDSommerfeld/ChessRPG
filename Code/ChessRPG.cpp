@@ -866,6 +866,7 @@ void createSelectScreen(HWND hwnd)
         fillLoadoutDropdown(currentState.windows[3]);
         fillLoadoutDropdown(currentState.windows[4]);
     }
+    currentState.windows[19] = createButton(currentState.mainWindow, L"Back", static_cast<int>(WindowCode::exit), 0.01, 0.01, 0.1, 0.05);
 }
 
 void destroySelectScreen()
@@ -876,6 +877,7 @@ void destroySelectScreen()
     DestroyWindow(currentState.windows[3]);
     DestroyWindow(currentState.windows[4]);
     DestroyWindow(currentState.windows[10]);
+    DestroyWindow(currentState.windows[19]);
 }
 
 void createLoadoutScreen(HWND hwnd)
@@ -958,7 +960,7 @@ void retrieveNewLoadoutSelection()
     DestroyWindow(currentState.windows[15]);
     
 
-    int loadout = static_cast<int>(SendMessage(currentState.windows[2], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0) + 1);
+    int loadout = static_cast<int>(SendMessage(currentState.windows[2], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0)) + 1;
 
     currentState.loadouts[loadout].moves[piece * 4] = static_cast<Piece::Move>(move1);
     currentState.loadouts[loadout].moves[piece * 4 + 1] = static_cast<Piece::Move>(move2);
@@ -1334,7 +1336,7 @@ void createAbout(HWND hwnd)
         "instead firing a cannon to hit a tile 3 away in a row or column\n\n"
         "Knight: The knight can joust through an adjacent piece, dealing damage as it passes through. Can only be performed next to a piece, and the other side must be empty\n\n"
         "Bishop: The bishop can use your turn to heal any of the 8 neighboring squares, provided a piece is there\n\n"
-        "Status effects persist between battles, stat adjustments like crit chance do not\n\n"
+        "Status effects and stat changes do not persist between battles\n\n"
         "Created by Brandon Sommerfeld", 0.3, 0.1, 0.4, 0.4);
     currentState.windows[1] = createButton(hwnd, L"Back", static_cast<int>(WindowCode::exit), 0.4, 0.8, 0.2, 0.1);
 }
@@ -1355,16 +1357,16 @@ void createBattle()
     int leftCenter{static_cast<int>(0.225 * (currentState.rightEdge - currentState.leftEdge))};
     int rightCenter{ static_cast<int>(0.775 * (currentState.rightEdge - currentState.leftEdge)) };
 
-    currentState.windows[0] = createIcon(currentState.mainWindow, (leftCenter - side/2) / static_cast<double>(currentState.rightEdge - currentState.leftEdge), 0.2, iconPercent, iconPercent);
+    currentState.windows[0] = createIcon(currentState.mainWindow, (leftCenter - side/2) / static_cast<double>(currentState.rightEdge - currentState.leftEdge), 0.15, iconPercent, iconPercent);
     fillIcon(currentState.windows[0], currentState.attacker, side);
 
-    currentState.windows[1] = createIcon(currentState.mainWindow, (rightCenter - side / 2) / static_cast<double>(currentState.rightEdge - currentState.leftEdge), 0.2, iconPercent, iconPercent);
+    currentState.windows[1] = createIcon(currentState.mainWindow, (rightCenter - side / 2) / static_cast<double>(currentState.rightEdge - currentState.leftEdge), 0.15, iconPercent, iconPercent);
     fillIcon(currentState.windows[1], currentState.defender, side);
 
     std::string message{ "Health " + std::to_string(currentState.attacker.getCurrentHealth()) + '/' + std::to_string(currentState.attacker.getMaxHealth())};
-    currentState.windows[2] = createLabel(currentState.mainWindow, StringToWString(message).c_str(), 0.125, 0.45, 0.2, 0.08);
+    currentState.windows[2] = createLabel(currentState.mainWindow, StringToWString(message).c_str(), 0.125, 0.4, 0.2, 0.08);
     message = "Health " + std::to_string(currentState.defender.getCurrentHealth()) + '/' + std::to_string(currentState.defender.getMaxHealth());
-    currentState.windows[3] = createLabel(currentState.mainWindow, StringToWString(message).c_str(), 0.675, 0.45, 0.2, 0.08);
+    currentState.windows[3] = createLabel(currentState.mainWindow, StringToWString(message).c_str(), 0.675, 0.4, 0.2, 0.08);
 
     currentState.windows[9] = createButton(currentState.mainWindow, L"Exit Game", static_cast<int>(WindowCode::exit), 0.01, 0.01, 0.1, 0.05);
 
@@ -1374,11 +1376,16 @@ void createBattle()
     }
     else
     {
-        currentState.windows[4] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(1))).c_str(), static_cast<int>(WindowCode::move1), 0.05, 0.55, 0.15, 0.1);
-        currentState.windows[5] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(2))).c_str(), static_cast<int>(WindowCode::move2), 0.25, 0.55, 0.15, 0.1);
-        currentState.windows[6] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(3))).c_str(), static_cast<int>(WindowCode::move3), 0.05, 0.75, 0.15, 0.1);
-        currentState.windows[7] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(4))).c_str(), static_cast<int>(WindowCode::move4), 0.25, 0.75, 0.15, 0.1);
+        currentState.windows[4] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(1))).c_str(), static_cast<int>(WindowCode::move1), 0.05, 0.5, 0.15, 0.1);
+        currentState.windows[5] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(2))).c_str(), static_cast<int>(WindowCode::move2), 0.25, 0.5, 0.15, 0.1);
+        currentState.windows[6] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(3))).c_str(), static_cast<int>(WindowCode::move3), 0.05, 0.7, 0.15, 0.1);
+        currentState.windows[7] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(4))).c_str(), static_cast<int>(WindowCode::move4), 0.25, 0.7, 0.15, 0.1);
         currentState.windows[8] = createButton(currentState.mainWindow, L"Flee", static_cast<int>(WindowCode::flee), 0.175, 0.9, 0.1, 0.05);
+
+        currentState.windows[11] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(1))).c_str(), 0.05, 0.61, 0.15, 0.05);
+        currentState.windows[12] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(2))).c_str(), 0.25, 0.61, 0.15, 0.05);
+        currentState.windows[13] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(3))).c_str(), 0.05, 0.81, 0.15, 0.05);
+        currentState.windows[14] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(4))).c_str(), 0.25, 0.81, 0.15, 0.05);
     }
 }
 
@@ -1412,6 +1419,10 @@ void destroyBattle()
     DestroyWindow(currentState.windows[8]);
     DestroyWindow(currentState.windows[9]);
     DestroyWindow(currentState.windows[10]);
+    DestroyWindow(currentState.windows[11]);
+    DestroyWindow(currentState.windows[12]);
+    DestroyWindow(currentState.windows[13]);
+    DestroyWindow(currentState.windows[14]);
 }
 
 void computerBattle()
@@ -1422,35 +1433,41 @@ void computerBattle()
 
 void changeTurns()
 {
+    DestroyWindow(currentState.windows[4]);
+    DestroyWindow(currentState.windows[5]);
+    DestroyWindow(currentState.windows[6]);
+    DestroyWindow(currentState.windows[7]);
+    DestroyWindow(currentState.windows[8]);
+    DestroyWindow(currentState.windows[11]);
+    DestroyWindow(currentState.windows[12]);
+    DestroyWindow(currentState.windows[13]);
+    DestroyWindow(currentState.windows[14]);
     if (!currentState.attackerTurn)
     {
-        currentState.attackerTurn = !currentState.attackerTurn;
-        DestroyWindow(currentState.windows[4]);
-        DestroyWindow(currentState.windows[5]);
-        DestroyWindow(currentState.windows[6]);
-        DestroyWindow(currentState.windows[7]);
-        DestroyWindow(currentState.windows[8]);
-
-        currentState.windows[4] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(1))).c_str(), static_cast<int>(WindowCode::move1), 0.05, 0.55, 0.15, 0.1);
-        currentState.windows[5] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(2))).c_str(), static_cast<int>(WindowCode::move2), 0.25, 0.55, 0.15, 0.1);
-        currentState.windows[6] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(3))).c_str(), static_cast<int>(WindowCode::move3), 0.05, 0.75, 0.15, 0.1);
-        currentState.windows[7] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(4))).c_str(), static_cast<int>(WindowCode::move4), 0.25, 0.75, 0.15, 0.1);
+        currentState.windows[4] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(1))).c_str(), static_cast<int>(WindowCode::move1), 0.05, 0.5, 0.15, 0.1);
+        currentState.windows[5] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(2))).c_str(), static_cast<int>(WindowCode::move2), 0.25, 0.5, 0.15, 0.1);
+        currentState.windows[6] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(3))).c_str(), static_cast<int>(WindowCode::move3), 0.05, 0.7, 0.15, 0.1);
+        currentState.windows[7] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.attacker.getMove(4))).c_str(), static_cast<int>(WindowCode::move4), 0.25, 0.7, 0.15, 0.1);
         currentState.windows[8] = createButton(currentState.mainWindow, L"Flee", static_cast<int>(WindowCode::flee), 0.175, 0.9, 0.1, 0.05);
+
+        currentState.windows[11] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(1))).c_str(), 0.05, 0.61, 0.15, 0.05);
+        currentState.windows[12] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(2))).c_str(), 0.25, 0.61, 0.15, 0.05);
+        currentState.windows[13] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(3))).c_str(), 0.05, 0.81, 0.15, 0.05);
+        currentState.windows[14] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(4))).c_str(), 0.25, 0.81, 0.15, 0.05);
     }
     else
     {
-        currentState.attackerTurn = !currentState.attackerTurn;
-        DestroyWindow(currentState.windows[4]);
-        DestroyWindow(currentState.windows[5]);
-        DestroyWindow(currentState.windows[6]);
-        DestroyWindow(currentState.windows[7]);
-        DestroyWindow(currentState.windows[8]);
+        currentState.windows[4] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.defender.getMove(1))).c_str(), static_cast<int>(WindowCode::move1), 0.6, 0.5, 0.15, 0.1);
+        currentState.windows[5] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.defender.getMove(2))).c_str(), static_cast<int>(WindowCode::move2), 0.8, 0.5, 0.15, 0.1);
+        currentState.windows[6] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.defender.getMove(3))).c_str(), static_cast<int>(WindowCode::move3), 0.6, 0.7, 0.15, 0.1);
+        currentState.windows[7] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.defender.getMove(4))).c_str(), static_cast<int>(WindowCode::move4), 0.8, 0.7, 0.15, 0.1);
 
-        currentState.windows[4] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.defender.getMove(1))).c_str(), static_cast<int>(WindowCode::move1), 0.6, 0.55, 0.15, 0.1);
-        currentState.windows[5] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.defender.getMove(2))).c_str(), static_cast<int>(WindowCode::move2), 0.8, 0.55, 0.15, 0.1);
-        currentState.windows[6] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.defender.getMove(3))).c_str(), static_cast<int>(WindowCode::move3), 0.6, 0.75, 0.15, 0.1);
-        currentState.windows[7] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.defender.getMove(4))).c_str(), static_cast<int>(WindowCode::move4), 0.8, 0.75, 0.15, 0.1);
+        currentState.windows[11] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(1))).c_str(), 0.6, 0.61, 0.15, 0.05);
+        currentState.windows[12] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(2))).c_str(), 0.8, 0.61, 0.15, 0.05);
+        currentState.windows[13] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(3))).c_str(), 0.6, 0.81, 0.15, 0.05);
+        currentState.windows[14] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(4))).c_str(), 0.8, 0.81, 0.15, 0.05);
     }
+    currentState.attackerTurn = !currentState.attackerTurn;
 }
 
 void useMove(int move)
@@ -1616,7 +1633,6 @@ void adjustButtons(HWND hwnd)
 void promotePawn(int row, int col)
 {
     currentState.waitingForInput = true;
-    //Game board uses up to 7
 
     currentState.windows[8] = createLabel(currentState.mainWindow, L"Promote your pawn:", BOARDRIGHT, 0.4, 0.2, 0.1);
     currentState.windows[9] = createButton(currentState.mainWindow, L"Rook", static_cast<int>(WindowCode::promoteRook), BOARDRIGHT, 0.55, 0.1, 0.05);
@@ -2024,7 +2040,7 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
 
                 currentState.player2name = L"Computer";
 
-                currentState.player1Loadout = static_cast<int>(SendMessage(currentState.windows[3], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0) + 1);
+                currentState.player1Loadout = static_cast<int>(SendMessage(currentState.windows[3], (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0));
                 currentState.player2Loadout = 0;
             }
             else
@@ -2532,6 +2548,10 @@ void buttonPressed(HWND hwnd, WPARAM wParam)
                         DestroyWindow(currentState.windows[6]);
                         DestroyWindow(currentState.windows[7]);
                         DestroyWindow(currentState.windows[8]);
+                        DestroyWindow(currentState.windows[11]);
+                        DestroyWindow(currentState.windows[12]);
+                        DestroyWindow(currentState.windows[13]);
+                        DestroyWindow(currentState.windows[14]);
                         computerBattle();
                     }
                 }
