@@ -634,7 +634,7 @@ void deselectSquare(int row, int col)
     Piece p{ currentState.board.getPiece(row, col) };
     if (p == Grid::noPiece)
     {
-        if (row % 2 == col % 2)
+        if (row % 2 != col % 2)
         {
             SendMessage(currentState.squares[row][col], (UINT)BM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)currentState.blackBackground);
         }
@@ -650,7 +650,7 @@ void deselectSquare(int row, int col)
         case Piece::Type::Pawn:
             if (p.isWhite())
             {
-                if (row % 2 == col % 2)
+                if (row % 2 != col % 2)
                 {
                     SendMessage(currentState.squares[row][col], (UINT)BM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)currentState.whitePawnBlackBackground);
                 }
@@ -661,7 +661,7 @@ void deselectSquare(int row, int col)
             }
             else
             {
-                if (row % 2 == col % 2)
+                if (row % 2 != col % 2)
                 {
                     SendMessage(currentState.squares[row][col], (UINT)BM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)currentState.blackPawnBlackBackground);
                 }
@@ -674,7 +674,7 @@ void deselectSquare(int row, int col)
         case Piece::Type::Rook:
             if (p.isWhite())
             {
-                if (row % 2 == col % 2)
+                if (row % 2 != col % 2)
                 {
                     SendMessage(currentState.squares[row][col], (UINT)BM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)currentState.whiteRookBlackBackground);
                 }
@@ -685,7 +685,7 @@ void deselectSquare(int row, int col)
             }
             else
             {
-                if (row % 2 == col % 2)
+                if (row % 2 != col % 2)
                 {
                     SendMessage(currentState.squares[row][col], (UINT)BM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)currentState.blackRookBlackBackground);
                 }
@@ -698,7 +698,7 @@ void deselectSquare(int row, int col)
         case Piece::Type::Knight:
             if (p.isWhite())
             {
-                if (row % 2 == col % 2)
+                if (row % 2 != col % 2)
                 {
                     SendMessage(currentState.squares[row][col], (UINT)BM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)currentState.whiteKnightBlackBackground);
                 }
@@ -709,7 +709,7 @@ void deselectSquare(int row, int col)
             }
             else
             {
-                if (row % 2 == col % 2)
+                if (row % 2 != col % 2)
                 {
                     SendMessage(currentState.squares[row][col], (UINT)BM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)currentState.blackKnightBlackBackground);
                 }
@@ -722,7 +722,7 @@ void deselectSquare(int row, int col)
         case Piece::Type::Bishop:
             if (p.isWhite())
             {
-                if (row % 2 == col % 2)
+                if (row % 2 != col % 2)
                 {
                     SendMessage(currentState.squares[row][col], (UINT)BM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)currentState.whiteBishopBlackBackground);
                 }
@@ -733,7 +733,7 @@ void deselectSquare(int row, int col)
             }
             else
             {
-                if (row % 2 == col % 2)
+                if (row % 2 != col % 2)
                 {
                     SendMessage(currentState.squares[row][col], (UINT)BM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)currentState.blackBishopBlackBackground);
                 }
@@ -746,7 +746,7 @@ void deselectSquare(int row, int col)
         case Piece::Type::Queen:
             if (p.isWhite())
             {
-                if (row % 2 == col % 2)
+                if (row % 2 != col % 2)
                 {
                     SendMessage(currentState.squares[row][col], (UINT)BM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)currentState.whiteQueenBlackBackground);
                 }
@@ -757,7 +757,7 @@ void deselectSquare(int row, int col)
             }
             else
             {
-                if (row % 2 == col % 2)
+                if (row % 2 != col % 2)
                 {
                     SendMessage(currentState.squares[row][col], (UINT)BM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)currentState.blackQueenBlackBackground);
                 }
@@ -770,7 +770,7 @@ void deselectSquare(int row, int col)
         case Piece::Type::King:
             if (p.isWhite())
             {
-                if (row % 2 == col % 2)
+                if (row % 2 != col % 2)
                 {
                     SendMessage(currentState.squares[row][col], (UINT)BM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)currentState.whiteKingBlackBackground);
                 }
@@ -781,7 +781,7 @@ void deselectSquare(int row, int col)
             }
             else
             {
-                if (row % 2 == col % 2)
+                if (row % 2 != col % 2)
                 {
                     SendMessage(currentState.squares[row][col], (UINT)BM_SETIMAGE, (WPARAM)IMAGE_BITMAP, (LPARAM)currentState.blackKingBlackBackground);
                 }
@@ -838,7 +838,6 @@ void createVictoryScreen(Winner winner)
     currentState.windows[0] = createLabel(currentState.mainWindow, message.c_str(), 0.2, 0.3, 0.6, 0.2);
     currentState.windows[1] = createButton(currentState.mainWindow, L"OK", static_cast<int>(WindowCode::exit),
         0.4, 0.6, 0.2, 0.1);
-    //Make a static label to congratulate, and an ok button which exits to main menu
 }
 
 void destroyVictoryScreen()
@@ -1136,7 +1135,6 @@ void computerUpdateBoard(int row, int col)
 
         }
     }
-    //Castle update
 
     if (currentState.board.getPiece(row, col).getType() == Piece::Type::King)
     {
@@ -1330,7 +1328,7 @@ void createAbout(HWND hwnd)
         "Rook: Fortifying and unforifying immediately uses your turn when clicked. While fortified, the rook has a defensive bonus but cannot move, "
         "instead firing a cannon to hit a tile 3 away in a row or column\n\n"
         "Knight: The knight can joust through an adjacent piece, dealing damage as it passes through. Can only be performed next to a piece, and the other side must be empty\n\n"
-        "Bishop: The bishop can use your turn to heal any of the 8 neighboring squares, provided a piece is there\n\n"
+        "Bishop: The bishop can use your turn to heal any of the 8 neighboring squares, except a king\n\n"
         "Status effects and stat changes do not persist between battles\n\n"
         "Created by Brandon Sommerfeld", 0.3, 0.1, 0.4, 0.4);
     currentState.windows[1] = createButton(hwnd, L"Back", static_cast<int>(WindowCode::exit), 0.4, 0.8, 0.2, 0.1);
@@ -1457,10 +1455,10 @@ void changeTurns()
         currentState.windows[6] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.defender.getMove(3))).c_str(), static_cast<int>(WindowCode::move3), 0.6, 0.7, 0.15, 0.1);
         currentState.windows[7] = createButton(currentState.mainWindow, StringToWString(printMove(currentState.defender.getMove(4))).c_str(), static_cast<int>(WindowCode::move4), 0.8, 0.7, 0.15, 0.1);
 
-        currentState.windows[11] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(1))).c_str(), 0.6, 0.61, 0.15, 0.05);
-        currentState.windows[12] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(2))).c_str(), 0.8, 0.61, 0.15, 0.05);
-        currentState.windows[13] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(3))).c_str(), 0.6, 0.81, 0.15, 0.05);
-        currentState.windows[14] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.attacker.getMove(4))).c_str(), 0.8, 0.81, 0.15, 0.05);
+        currentState.windows[11] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.defender.getMove(1))).c_str(), 0.6, 0.61, 0.15, 0.05);
+        currentState.windows[12] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.defender.getMove(2))).c_str(), 0.8, 0.61, 0.15, 0.05);
+        currentState.windows[13] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.defender.getMove(3))).c_str(), 0.6, 0.81, 0.15, 0.05);
+        currentState.windows[14] = createLabel(currentState.mainWindow, StringToWString(getDescription(currentState.defender.getMove(4))).c_str(), 0.8, 0.81, 0.15, 0.05);
     }
     currentState.attackerTurn = !currentState.attackerTurn;
 }
@@ -1618,10 +1616,6 @@ void adjustButtons(HWND hwnd)
         destroyAbout();
         createAbout(hwnd);
         break;
-    case CurrentActivity::createLoadout:
-        destroyLoadoutScreen();
-        createLoadoutScreen(hwnd);
-        break;
     }
 }
 
@@ -1716,8 +1710,6 @@ void updateBoard(int row, int col)
 
         }
     }
-    //Castle update
-
     if (currentState.board.getPiece(row, col).getType() == Piece::Type::King)
     {
         if (currentState.selectedCol - col == 2)
@@ -1884,27 +1876,30 @@ std::array<std::array<bool, 8>, 8> specialSquares()
     {
         for (int i{ -1 }; i < 2; ++i)
         {
-            if (currentState.selectedRow + i >= 0 && currentState.selectedRow + i < 8 && currentState.selectedCol - 1 >= 0 && currentState.board.getPiece(currentState.selectedRow + i, currentState.selectedCol - 1) != Grid::noPiece)
+            if (currentState.selectedRow + i >= 0 && currentState.selectedRow + i < 8 && currentState.selectedCol - 1 >= 0 && currentState.board.getPiece(currentState.selectedRow + i, currentState.selectedCol - 1) != Grid::noPiece
+                && currentState.board.getPiece(currentState.selectedRow + i, currentState.selectedCol - 1).getType() != Piece::Type::King)
             {
                 reachable[currentState.selectedRow + i][currentState.selectedCol - 1] = true;
             }
-            if (currentState.selectedRow + i >= 0 && currentState.selectedRow + i < 8 && currentState.selectedCol + 1 < 8 && currentState.board.getPiece(currentState.selectedRow + i, currentState.selectedCol + 1) != Grid::noPiece)
+            if (currentState.selectedRow + i >= 0 && currentState.selectedRow + i < 8 && currentState.selectedCol + 1 < 8 && currentState.board.getPiece(currentState.selectedRow + i, currentState.selectedCol + 1) != Grid::noPiece
+                && currentState.board.getPiece(currentState.selectedRow + i, currentState.selectedCol + 1).getType() != Piece::Type::King)
             {
                 reachable[currentState.selectedRow + i][currentState.selectedCol + 1] = true;
             }
         }
-        if (currentState.selectedRow + 1 < 8 && currentState.board.getPiece(currentState.selectedRow + 1, currentState.selectedCol) != Grid::noPiece)
+        if (currentState.selectedRow + 1 < 8 && currentState.board.getPiece(currentState.selectedRow + 1, currentState.selectedCol) != Grid::noPiece
+            && currentState.board.getPiece(currentState.selectedRow + 1, currentState.selectedCol).getType() != Piece::Type::King)
         {
             reachable[currentState.selectedRow + 1][currentState.selectedCol] = true;
         }
-        if (currentState.selectedRow - 1 >= 0 && currentState.board.getPiece(currentState.selectedRow - 1, currentState.selectedCol) != Grid::noPiece)
+        if (currentState.selectedRow - 1 >= 0 && currentState.board.getPiece(currentState.selectedRow - 1, currentState.selectedCol) != Grid::noPiece
+            && currentState.board.getPiece(currentState.selectedRow - 1, currentState.selectedCol).getType() != Piece::Type::King)
         {
             reachable[currentState.selectedRow - 1][currentState.selectedCol] = true;
         }
         break;
     }
     }
-
     return reachable;
 }
 

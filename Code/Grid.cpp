@@ -14,8 +14,8 @@ Grid::Grid()
 	board[0][0] = Piece{ Piece::Type::Rook, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
 	board[0][1] = Piece{ Piece::Type::Knight, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
 	board[0][2] = Piece{ Piece::Type::Bishop, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
-	board[0][3] = Piece{ Piece::Type::King, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
-	board[0][4] = Piece{ Piece::Type::Queen, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
+	board[0][3] = Piece{ Piece::Type::Queen, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
+	board[0][4] = Piece{ Piece::Type::King, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
 	board[0][5] = Piece{ Piece::Type::Bishop, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
 	board[0][6] = Piece{ Piece::Type::Knight, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
 	board[0][7] = Piece{ Piece::Type::Rook, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), false };
@@ -39,8 +39,8 @@ Grid::Grid()
 	board[7][0] = Piece{ Piece::Type::Rook, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
 	board[7][1] = Piece{ Piece::Type::Knight, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
 	board[7][2] = Piece{ Piece::Type::Bishop, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
-	board[7][3] = Piece{ Piece::Type::King, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
-	board[7][4] = Piece{ Piece::Type::Queen, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
+	board[7][3] = Piece{ Piece::Type::Queen, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
+	board[7][4] = Piece{ Piece::Type::King, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
 	board[7][5] = Piece{ Piece::Type::Bishop, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
 	board[7][6] = Piece{ Piece::Type::Knight, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
 	board[7][7] = Piece{ Piece::Type::Rook, static_cast<Piece::Move>(0), static_cast<Piece::Move>(1) , static_cast<Piece::Move>(2) , static_cast<Piece::Move>(3), true };
@@ -54,8 +54,8 @@ Grid::Grid(Loadout loadout1, Loadout loadout2)
 	board[0][0] = Piece{ Piece::Type::Rook, loadout2.moves[4], loadout2.moves[5] , loadout2.moves[6] , loadout2.moves[7], false };
 	board[0][1] = Piece{ Piece::Type::Knight, loadout2.moves[8], loadout2.moves[9] , loadout2.moves[10] , loadout2.moves[11], false };
 	board[0][2] = Piece{ Piece::Type::Bishop, loadout2.moves[12], loadout2.moves[13] , loadout2.moves[14] , loadout2.moves[15], false };
-	board[0][3] = Piece{ Piece::Type::King, loadout2.moves[20], loadout2.moves[21] , loadout2.moves[22] , loadout2.moves[23], false };
-	board[0][4] = Piece{ Piece::Type::Queen, loadout2.moves[16], loadout2.moves[17] , loadout2.moves[18] , loadout2.moves[19], false };
+	board[0][3] = Piece{ Piece::Type::Queen, loadout2.moves[16], loadout2.moves[17] , loadout2.moves[18] , loadout2.moves[19], false };
+	board[0][4] = Piece{ Piece::Type::King, loadout2.moves[20], loadout2.moves[21] , loadout2.moves[22] , loadout2.moves[23], false };
 	board[0][5] = Piece{ Piece::Type::Bishop, loadout2.moves[12], loadout2.moves[13] , loadout2.moves[14] , loadout2.moves[15], false };
 	board[0][6] = Piece{ Piece::Type::Knight, loadout2.moves[8], loadout2.moves[9] , loadout2.moves[10] , loadout2.moves[11], false };
 	board[0][7] = Piece{ Piece::Type::Rook, loadout2.moves[4], loadout2.moves[5] , loadout2.moves[6] , loadout2.moves[7], false };
@@ -79,8 +79,8 @@ Grid::Grid(Loadout loadout1, Loadout loadout2)
 	board[7][0] = Piece{ Piece::Type::Rook, loadout1.moves[4], loadout1.moves[5] , loadout1.moves[6] , loadout1.moves[7], true };
 	board[7][1] = Piece{ Piece::Type::Knight, loadout1.moves[8], loadout1.moves[9] , loadout1.moves[10] , loadout1.moves[11], true };
 	board[7][2] = Piece{ Piece::Type::Bishop, loadout1.moves[12], loadout1.moves[13] , loadout1.moves[14] , loadout1.moves[15], true };
-	board[7][3] = Piece{ Piece::Type::King, loadout1.moves[20], loadout1.moves[21] , loadout1.moves[22] , loadout1.moves[23], true };
-	board[7][4] = Piece{ Piece::Type::Queen, loadout1.moves[16], loadout1.moves[17] , loadout1.moves[18] , loadout1.moves[19], true };
+	board[7][3] = Piece{ Piece::Type::Queen, loadout1.moves[16], loadout1.moves[17] , loadout1.moves[18] , loadout1.moves[19], true };
+	board[7][4] = Piece{ Piece::Type::King, loadout1.moves[20], loadout1.moves[21] , loadout1.moves[22] , loadout1.moves[23], true };
 	board[7][5] = Piece{ Piece::Type::Bishop, loadout1.moves[12], loadout1.moves[13] , loadout1.moves[14] , loadout1.moves[15], true };
 	board[7][6] = Piece{ Piece::Type::Knight, loadout1.moves[8], loadout1.moves[9] , loadout1.moves[10] , loadout1.moves[11], true };
 	board[7][7] = Piece{ Piece::Type::Rook, loadout1.moves[4], loadout1.moves[5] , loadout1.moves[6] , loadout1.moves[7], true };
@@ -106,8 +106,6 @@ void Grid::removePiece(int crow, int ccol)
 	board[crow][ccol] = noPiece;
 }
 
-
-//Only call once battle is finished
 void Grid::movePiece(int crow, int ccol, int nrow, int ncol)
 {
 	board[nrow][ncol] = board[crow][ccol];
@@ -115,8 +113,7 @@ void Grid::movePiece(int crow, int ccol, int nrow, int ncol)
 	board[nrow][ncol].moved();
 	if (board[nrow][ncol].getType() == Piece::Type::King && ccol - ncol == 2)
 	{
-		//Left castle
-		//Rook moves 2
+	
 		board[crow][2] = board[crow][0];
 		board[crow][0] = noPiece;
 		board[crow][2].moved();
@@ -124,8 +121,6 @@ void Grid::movePiece(int crow, int ccol, int nrow, int ncol)
 	}
 	if (board[nrow][ncol].getType() == Piece::Type::King && ncol - ccol == 2)
 	{
-		//Right castle
-		//Rook moves 3
 		board[crow][4] = board[crow][7];
 		board[crow][7] = noPiece;
 		board[crow][4].moved();
